@@ -1,7 +1,5 @@
 -- Next Move Database Schema
--- Run this in your Supabase SQL editor
 
--- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Companies table
@@ -51,7 +49,7 @@ CREATE TABLE IF NOT EXISTS report_usage (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   company_slug TEXT NOT NULL,
-  month TEXT NOT NULL, -- format: YYYY-MM
+  month TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -81,11 +79,21 @@ CREATE TABLE IF NOT EXISTS offer_analyses (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS Policies
+-- RLS
 ALTER TABLE saved_companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_usage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offer_analyses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_reports ENABLE ROW LEVEL SECURITY;
+
+-- Drop and recreate policies
+DROP POLICY IF EXISTS "Users can manage own saved companies" ON saved_companies;
+DROP POLICY IF EXISTS "Users can view own usage" ON report_usage;
+DROP POLICY IF EXISTS "Users can view own subscription" ON subscriptions;
+DROP POLICY IF EXISTS "Users can view own analyses" ON offer_analyses;
+DROP POLICY IF EXISTS "Public read companies" ON companies;
+DROP POLICY IF EXISTS "Public read reports" ON company_reports;
 
 CREATE POLICY "Users can manage own saved companies"
   ON saved_companies FOR ALL USING (auth.uid() = user_id);
@@ -99,8 +107,5 @@ CREATE POLICY "Users can view own subscription"
 CREATE POLICY "Users can view own analyses"
   ON offer_analyses FOR ALL USING (auth.uid() = user_id);
 
--- Public read on companies and reports
-ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE company_reports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read companies" ON companies FOR SELECT USING (true);
 CREATE POLICY "Public read reports" ON company_reports FOR SELECT USING (true);
