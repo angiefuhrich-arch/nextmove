@@ -13,6 +13,31 @@ export interface Company {
   founded: number
   website?: string
   description: string
+  // Scarsian Index
+  scarsian_index?: number
+  confidence_score?: number
+  verdict?: Verdict
+  analyst_note?: string
+  gfi_score?: number
+  // Scarsian dimensions
+  ladder_speed?: number
+  skill_depreciation_risk?: number
+  network_multiplier?: number
+  layoff_convexity?: number
+  reputation_stain_risk?: number
+  financial_runway?: number
+  badge_premium?: number
+  talent_magnetism?: number
+  sector_optionality?: number
+  cultural_velocity_match?: number
+  global_mobility_index?: number
+  // GFI dimensions
+  english_working_language?: number
+  visa_sponsorship_history?: number
+  international_leadership_ratio?: number
+  expat_retention_rate?: number
+  cantonese_requirement_level?: number
+  regional_office_culture?: number
 }
 
 export interface CategoryScore {
@@ -51,4 +76,5 @@ export interface UserProfile {
   subscription_tier: SubscriptionTier
   reports_used_this_month: number
   stripe_customer_id?: string
+  is_admin?: boolean
 }

@@ -1,15 +1,15 @@
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/navbar'
-import { TrendingUp, Shield, Zap, BarChart3, Star, CheckCircle2 } from 'lucide-react'
+import { TrendingUp, Shield, Zap, Globe, Star, CheckCircle2 } from 'lucide-react'
 
 const FEATURES = [
-  { icon: BarChart3, title: 'Company Score', desc: 'Every company rated 0–100 across 10 career dimensions.' },
-  { icon: TrendingUp, title: 'Career Growth Analysis', desc: 'Understand your real promotion and advancement potential.' },
-  { icon: Shield, title: 'Layoff Risk Assessment', desc: 'Know the financial stability and risk before you join.' },
-  { icon: Zap, title: 'AI-Powered Insights', desc: 'Instant summaries, verdicts, and personalized guidance.' },
+  { icon: Globe, title: 'Global Fit Index (GFI)', desc: 'Unique score for international professionals — visa history, English environment, expat retention, and more.' },
+  { icon: TrendingUp, title: 'Scarsian Index', desc: 'Every company rated 0–100 across 11 career dimensions built for Asia-Pacific markets.' },
+  { icon: Shield, title: 'Layoff Convexity', desc: 'Asymmetric risk analysis — understand downside exposure before you sign.' },
+  { icon: Zap, title: 'AI Career Intelligence', desc: 'Instant analyst-grade summaries, verdicts, and offer guidance powered by AI.' },
 ]
 
-const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Stripe', 'Canva', 'Salesforce', 'HubSpot', 'Revolut', 'Airwallex', 'HSBC', 'Glue Up']
+const COMPANIES = ['HSBC', 'Google', 'Meta', 'Amazon', 'Microsoft', 'Stripe', 'Canva', 'Salesforce', 'HubSpot', 'Revolut', 'Airwallex', 'Glue Up']
 
 export default function Home() {
   return (
@@ -21,15 +21,16 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
             <Star size={14} />
-            AI Career Intelligence Platform
+            Built for International Professionals in Asia
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
             Know before you<br />
-            <span className="text-green-600">accept the offer.</span>
+            <span className="text-green-600">cross the border.</span>
           </h1>
           <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Next Move uses AI to analyze company reputation, career growth, compensation, culture, 
-            layoff risk, and employee sentiment so you can make smarter career decisions.
+            Scarsian uses AI to analyze company reputation, career growth, compensation, culture,
+            layoff risk, and global fit — so international professionals in Hong Kong and Asia
+            can make smarter career decisions.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
@@ -46,11 +47,11 @@ export default function Home() {
               Analyze a Company
             </Link>
           </div>
-          <p className="text-sm text-slate-400 mt-4">Free plan includes 3 company reports per month. No credit card required.</p>
+          <p className="text-sm text-slate-400 mt-4">Free plan · 3 reports/month · No credit card required</p>
         </div>
       </section>
 
-      {/* Verdict Preview */}
+      {/* Verdict preview */}
       <section className="py-12 bg-slate-50">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-3 gap-4">
@@ -75,8 +76,8 @@ export default function Home() {
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 mb-3">Everything you need to decide</h2>
-            <p className="text-slate-500">10 dimensions. One score. Instant clarity.</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-3">Intelligence built for Asia careers</h2>
+            <p className="text-slate-500">The only platform with a Global Fit Index for international professionals.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
@@ -97,8 +98,8 @@ export default function Home() {
       {/* Companies */}
       <section className="py-16 bg-slate-50 px-6">
         <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-3">Companies we analyze</h2>
-          <p className="text-slate-500 mb-8 text-sm">Get instant intelligence on top employers across tech, finance, and more</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">Companies we cover</h2>
+          <p className="text-slate-500 mb-8 text-sm">Analyst-grade intelligence on employers across Hong Kong, APAC, and global tech</p>
           <div className="flex flex-wrap gap-3 justify-center">
             {COMPANIES.map((c) => (
               <Link
@@ -113,16 +114,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Preview */}
+      {/* Pricing preview */}
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-slate-900 mb-3">Start free. Upgrade when ready.</h2>
-          <p className="text-slate-500 mb-10">No credit card required to start.</p>
+          <p className="text-slate-500 mb-10">Priced for Hong Kong and Asia-Pacific professionals.</p>
           <div className="grid md:grid-cols-3 gap-6 text-left">
             {[
-              { name: 'Free', price: '$0', features: ['3 company reports/month', 'Basic score', 'Basic AI summary'] },
-              { name: 'Pro', price: '$12/mo', features: ['Unlimited reports', 'Full AI analysis', 'Company comparison', 'Watchlist', 'Offer decision assistant'], highlight: true },
-              { name: 'Premium', price: '$29/mo', features: ['Everything in Pro', 'CV-based fit analysis', 'Salary negotiation', 'Career recommendations', 'Priority AI reports'] },
+              { name: 'Free', price: 'HK$0', features: ['3 company reports/month', 'Scarsian Index score', 'Basic AI summary'] },
+              { name: 'Pro', price: 'HK$98/mo', features: ['Unlimited reports', 'Full AI analysis', 'Global Fit Index', 'Company comparison', 'Offer assistant'], highlight: true },
+              { name: 'Premium', price: 'HK$228/mo', features: ['Everything in Pro', 'CV fit analysis', 'Salary negotiation', 'Career recommendations', 'Priority AI reports'] },
             ].map((plan) => (
               <div key={plan.name} className={`rounded-xl border p-6 ${plan.highlight ? 'border-green-500 bg-green-50 ring-2 ring-green-500' : 'border-slate-200 bg-white'}`}>
                 <div className="mb-4">
@@ -140,12 +141,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <Link
-            href="/pricing"
-            className="inline-flex mt-8 items-center text-sm text-slate-500 hover:text-slate-900 underline"
-          >
-            See full pricing details →
-          </Link>
         </div>
       </section>
 
@@ -153,7 +148,7 @@ export default function Home() {
       <section className="py-20 bg-slate-900 px-6">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Make your next career move with confidence</h2>
-          <p className="text-slate-400 mb-8">Join thousands of professionals using Next Move to evaluate companies before they say yes.</p>
+          <p className="text-slate-400 mb-8">Join international professionals using Scarsian to evaluate companies before they say yes.</p>
           <Link
             href="/signup"
             className="inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-white font-bold px-8 py-3.5 rounded-lg transition-colors text-base"
@@ -170,9 +165,10 @@ export default function Home() {
             <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
               <TrendingUp size={12} className="text-white" />
             </div>
-            <span className="font-bold text-slate-900 text-sm">Next Move</span>
+            <span className="font-bold text-slate-900 text-sm">Scarsian</span>
+            <span className="text-slate-400 text-xs ml-1">Career Intelligence Platform</span>
           </div>
-          <p className="text-xs text-slate-400">© 2025 Next Move. Know before you accept the offer.</p>
+          <p className="text-xs text-slate-400">© 2025 Scarsian. Know before you cross the border.</p>
           <div className="flex gap-4 text-xs text-slate-500">
             <Link href="/pricing" className="hover:text-slate-900">Pricing</Link>
             <Link href="/login" className="hover:text-slate-900">Login</Link>

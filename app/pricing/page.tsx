@@ -5,23 +5,24 @@ import { CheckCircle2, Zap } from 'lucide-react'
 const PLANS = [
   {
     name: 'Free',
-    price: '$0',
+    price: 'HK$0',
     period: 'forever',
-    description: 'Get started with basic company intelligence.',
-    features: ['3 company reports per month', 'Basic Next Move Score', 'Basic AI summary', 'Company search'],
+    description: 'Get started with basic career intelligence.',
+    features: ['3 company reports per month', 'Scarsian Index score', 'Basic AI summary', 'Company search'],
     cta: 'Start free',
     href: '/signup',
     highlight: false,
   },
   {
     name: 'Pro',
-    price: '$12',
+    price: 'HK$98',
     period: 'per month',
-    description: 'For serious job seekers and active candidates.',
+    description: 'For serious job seekers and active candidates in Asia.',
     features: [
       'Unlimited company reports',
-      'Full AI analysis & insights',
-      'Company comparison (2-3 companies)',
+      'Full Scarsian Index (11 dimensions)',
+      'Global Fit Index (GFI)',
+      'Company comparison (2–3 companies)',
       'Watchlist — save companies',
       'Offer Decision Assistant',
       'Downloadable PDF reports',
@@ -32,7 +33,7 @@ const PLANS = [
   },
   {
     name: 'Premium',
-    price: '$29',
+    price: 'HK$228',
     period: 'per month',
     description: 'Full intelligence suite for career transformations.',
     features: [
@@ -57,7 +58,7 @@ export default function PricingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h1 className="text-4xl font-bold text-slate-900 mb-3">Simple, honest pricing</h1>
-            <p className="text-slate-500 text-lg">Start free. Upgrade when you need more intelligence.</p>
+            <p className="text-slate-500 text-lg">Priced for Hong Kong and Asia-Pacific professionals.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -108,14 +109,18 @@ export default function PricingPage() {
             ))}
           </div>
 
+          <div className="mt-10 text-center text-sm text-slate-500">
+            All prices in Hong Kong Dollars (HKD). Billed monthly. Cancel anytime.
+          </div>
+
           <div className="mt-14 border-t border-slate-100 pt-12">
             <h3 className="text-lg font-semibold text-slate-900 mb-6 text-center">Frequently asked questions</h3>
             <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
               {[
-                { q: 'What counts as a report?', a: 'Each time you view a company\'s full intelligence report, that uses one report credit. Basic search results don\'t count.' },
+                { q: 'What is the Global Fit Index?', a: 'GFI is a Scarsian-exclusive score measuring how welcoming a company is to international professionals — covering visa history, English environment, expat retention, and leadership diversity.' },
                 { q: 'Can I cancel anytime?', a: 'Yes. Cancel anytime from your account page. You keep access until the end of your billing period.' },
-                { q: 'How accurate is the AI analysis?', a: 'Reports are based on aggregated data and AI analysis. We show confidence scores so you always know the data quality.' },
-                { q: 'Is my data private?', a: 'Yes. Your offer analysis and CV data are never shared. Read our privacy policy for details.' },
+                { q: 'How accurate is the AI analysis?', a: 'Reports combine aggregated data and AI analysis. We show confidence scores so you always know the data quality.' },
+                { q: 'Is my data private?', a: 'Yes. Your offer analysis and CV data are never shared or used to train models.' },
               ].map(({ q, a }) => (
                 <div key={q}>
                   <p className="font-medium text-slate-900 mb-1 text-sm">{q}</p>

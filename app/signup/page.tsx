@@ -54,7 +54,7 @@ export default function SignupPage() {
             <div className="w-9 h-9 bg-green-500 rounded-lg flex items-center justify-center">
               <TrendingUp size={18} className="text-white" />
             </div>
-            <span className="font-bold text-slate-900 text-xl">Next Move</span>
+            <span className="font-bold text-slate-900 text-xl">Scarsian</span>
           </Link>
           <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
           <p className="text-slate-500 text-sm mt-1">Free plan · 3 reports/month · No card needed</p>

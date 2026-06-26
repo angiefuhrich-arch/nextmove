@@ -10,7 +10,7 @@ export function Navbar() {
           <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
             <TrendingUp size={16} className="text-white" />
           </div>
-          <span className="font-bold text-slate-900 text-lg">Next Move</span>
+          <span className="font-bold text-slate-900 text-lg">Scarsian</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">

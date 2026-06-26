@@ -5,7 +5,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_place
 })
 
 export const PLANS = {
-  free: { name: 'Free', price: 0, reports: 3 },
-  pro: { name: 'Pro', price: 12, reports: -1, priceId: process.env.STRIPE_PRO_PRICE_ID },
-  premium: { name: 'Premium', price: 29, reports: -1, priceId: process.env.STRIPE_PREMIUM_PRICE_ID },
+  free: { name: 'Free', price: 0, currency: 'HKD', reports: 3 },
+  pro: { name: 'Pro', price: 98, currency: 'HKD', reports: -1, priceId: process.env.STRIPE_PRICE_PRO },
+  premium: { name: 'Premium', price: 228, currency: 'HKD', reports: -1, priceId: process.env.STRIPE_PRICE_PREMIUM },
 }

@@ -35,7 +35,7 @@ export function Sidebar() {
           <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
             <TrendingUp size={16} className="text-white" />
           </div>
-          <span className="text-white font-bold text-lg">Next Move</span>
+          <span className="text-white font-bold text-lg">Scarsian</span>
         </Link>
         <p className="text-slate-400 text-xs mt-1">Career Intelligence</p>
       </div>

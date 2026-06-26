@@ -19,7 +19,7 @@ export default function SearchPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Company Search</h1>
-          <p className="text-slate-500 text-sm mt-1">Search any company to see their Next Move score and full intelligence report.</p>
+          <p className="text-slate-500 text-sm mt-1">Search any company to see their Scarsian score and full intelligence report.</p>
         </div>
 
         <div className="relative max-w-xl">
