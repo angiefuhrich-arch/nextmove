@@ -1,130 +1,176 @@
 // Server-side only. AI never calls this directly.
 
-export interface SignalScores {
-  financial_runway: number
-  ladder_speed: number
-  skill_depreciation_risk: number
-  network_multiplier: number
-  layoff_convexity: number
-  reputation_stain_risk: number
-  badge_premium: number
-  talent_magnetism: number
-  sector_optionality: number
-  cultural_velocity_match: number
-  global_mobility_index: number
-  english_working_language: number
-  visa_sponsorship_history: number
-  international_leadership_ratio: number
-  expat_retention_rate: number
-  cantonese_requirement_level: number
-  regional_office_culture: number
-}
+// === Signal Definitions ===
+
+// Main scoring signals (AI-proposed)
+export const SCORING_SIGNALS = [
+  // Career Growth Score pillar
+  'promotion_velocity',
+  'skill_transferability',
+  'network_multiplier',
+  // Career Risk Score pillar
+  'layoff_resilience',
+  'reputation_safety',
+  'financial_stability',
+  // Market Value Score pillar
+  'badge_premium',
+  'talent_magnetism',
+  'sector_optionality',
+  // Career Fit Score pillar (culture_alignment + GFI)
+  'culture_alignment',
+  // GFI sub-signals
+  'communication_accessibility',
+  'visa_accessibility',
+  'international_leadership',
+  'expat_retention',
+  'language_accessibility',
+  'regional_autonomy',
+  // Adjustment layer
+  'momentum_score',    // 0–100 where 50 = neutral; converts to -5..+5
+  'volatility_score',  // 0–100 where 0 = stable; converts to 0..-10 penalty
+] as const
+
+// Confidence inputs (AI-assessed separately)
+export const CONFIDENCE_SIGNALS = [
+  'evidence_coverage',
+  'data_freshness',
+  'cross_source_agreement',
+  'sample_reliability',
+] as const
+
+export const SIGNAL_NAMES = [...SCORING_SIGNALS, ...CONFIDENCE_SIGNALS] as const
+
+export type ScoringSignalName = typeof SCORING_SIGNALS[number]
+export type ConfidenceSignalName = typeof CONFIDENCE_SIGNALS[number]
+export type SignalName = typeof SIGNAL_NAMES[number]
+
+export type ScoringSignals = Record<ScoringSignalName, number>
+export type ConfidenceInputs = Record<ConfidenceSignalName, number>
+
+// === Output Types ===
 
 export interface ScarsianScores {
-  scarsian_score: number
+  // Pillar scores
   career_growth_score: number
   career_risk_score: number
   market_value_score: number
   career_fit_score: number
   gfi_score: number
-  career_alpha: number
+  // Base before adjustments
+  base_score: number
+  // Adjustment components
+  momentum_adjustment: number   // -5 to +5
+  volatility_penalty: number    // -10 to 0
+  // Final
+  scarsian_score: number        // 0–100 (clamped)
+  career_alpha: number          // scarsian_score - 50
   verdict: 'strong' | 'caution' | 'no-go'
+  // Confidence
+  confidence_score: number
+  insufficient_data: boolean    // true if confidence < 50
 }
 
-export const SIGNAL_NAMES = [
-  'financial_runway',
-  'ladder_speed',
-  'skill_depreciation_risk',
-  'network_multiplier',
-  'layoff_convexity',
-  'reputation_stain_risk',
-  'badge_premium',
-  'talent_magnetism',
-  'sector_optionality',
-  'cultural_velocity_match',
-  'global_mobility_index',
-  'english_working_language',
-  'visa_sponsorship_history',
-  'international_leadership_ratio',
-  'expat_retention_rate',
-  'cantonese_requirement_level',
-  'regional_office_culture',
-] as const
+// === Formula ===
 
-function avg(values: number[]): number {
-  if (values.length === 0) return 50
-  return values.reduce((a, b) => a + b, 0) / values.length
+function clamp(v: number, min = 0, max = 100): number {
+  return Math.max(min, Math.min(max, v))
 }
 
-function clamp(v: number): number {
-  return Math.max(0, Math.min(100, Math.round(v)))
+function weighted(pairs: [number, number][]): number {
+  return pairs.reduce((sum, [score, weight]) => sum + score * weight, 0)
 }
 
-export function calculateScarsianScores(signals: SignalScores): ScarsianScores {
-  // Higher skill_depreciation_risk, reputation_stain_risk, cantonese_requirement_level = worse → invert
-  const careerGrowthScore = clamp(avg([
-    signals.ladder_speed,
-    100 - signals.skill_depreciation_risk,
-    signals.sector_optionality,
-    signals.badge_premium,
+export function calculateScarsianScores(
+  signals: ScoringSignals,
+  confidence: ConfidenceInputs
+): ScarsianScores {
+  // --- Step 1: Pillar Scores ---
+
+  // Career Growth Score
+  const careerGrowthScore = clamp(weighted([
+    [signals.promotion_velocity,   0.35],
+    [signals.skill_transferability, 0.35],
+    [signals.network_multiplier,   0.30],
   ]))
 
-  // Higher = safer career (layoff_convexity: high score = low layoff risk)
-  const careerRiskScore = clamp(avg([
-    signals.layoff_convexity,
-    signals.financial_runway,
-    100 - signals.reputation_stain_risk,
+  // Career Risk Score
+  const careerRiskScore = clamp(weighted([
+    [signals.layoff_resilience,  0.35],
+    [signals.reputation_safety,  0.30],
+    [signals.financial_stability, 0.35],
   ]))
 
-  const marketValueScore = clamp(avg([
-    signals.badge_premium,
-    signals.talent_magnetism,
-    signals.sector_optionality,
-    signals.network_multiplier,
+  // Market Value Score
+  const marketValueScore = clamp(weighted([
+    [signals.badge_premium,      0.45],
+    [signals.talent_magnetism,   0.30],
+    [signals.sector_optionality, 0.25],
   ]))
 
-  const careerFitScore = clamp(avg([
-    signals.cultural_velocity_match,
-    signals.network_multiplier,
-    signals.talent_magnetism,
+  // GFI (sub-score used inside CFS)
+  const gfiScore = clamp(weighted([
+    [signals.communication_accessibility, 0.25],
+    [signals.visa_accessibility,          0.20],
+    [signals.international_leadership,    0.15],
+    [signals.expat_retention,             0.15],
+    [signals.language_accessibility,      0.15],
+    [signals.regional_autonomy,           0.10],
   ]))
 
-  // cantonese_requirement_level: 0=no requirement (good for internationals), 100=mandatory (bad)
-  const gfiScore = clamp(avg([
-    signals.english_working_language,
-    signals.visa_sponsorship_history,
-    signals.international_leadership_ratio,
-    signals.expat_retention_rate,
-    100 - signals.cantonese_requirement_level,
-    signals.regional_office_culture,
+  // Career Fit Score (culture_alignment + GFI)
+  const careerFitScore = clamp(weighted([
+    [signals.culture_alignment, 0.45],
+    [gfiScore,                  0.55],
   ]))
 
-  const scarsianScore = clamp(
-    careerGrowthScore * 0.30 +
-    careerRiskScore * 0.25 +
-    marketValueScore * 0.25 +
-    careerFitScore * 0.20
-  )
+  // --- Step 2: Base Scarsian Index ---
+  const baseScore = weighted([
+    [careerGrowthScore, 0.35],
+    [careerRiskScore,   0.30],
+    [marketValueScore,  0.20],
+    [careerFitScore,    0.15],
+  ])
 
+  // --- Step 3: Adjustment Layer ---
+  // momentum_score: 0–100 where 50 = neutral → convert to -5..+5
+  const momentumAdjustment = clamp((signals.momentum_score - 50) / 10, -5, 5)
+
+  // volatility_score: 0–100 where 0 = stable, 100 = max volatility → penalty 0..-10
+  const volatilityPenalty = clamp(-(signals.volatility_score / 10), -10, 0)
+
+  const rawFinal = baseScore + momentumAdjustment + volatilityPenalty
+  const scarsianScore = Math.round(clamp(rawFinal))
+
+  // --- Confidence Score ---
+  // Calculated independently from evidence quality signals
+  const confidenceScore = Math.round(weighted([
+    [confidence.evidence_coverage,      0.30],
+    [confidence.data_freshness,         0.25],
+    [confidence.cross_source_agreement, 0.25],
+    [confidence.sample_reliability,     0.20],
+  ]))
+
+  const insufficientData = confidenceScore < 50
+
+  // --- Derived fields ---
   const careerAlpha = scarsianScore - 50
-
   const verdict: 'strong' | 'caution' | 'no-go' =
     scarsianScore >= 70 ? 'strong' :
     scarsianScore >= 45 ? 'caution' : 'no-go'
 
   return {
+    career_growth_score: Math.round(careerGrowthScore),
+    career_risk_score: Math.round(careerRiskScore),
+    market_value_score: Math.round(marketValueScore),
+    career_fit_score: Math.round(careerFitScore),
+    gfi_score: Math.round(gfiScore),
+    base_score: Math.round(baseScore),
+    momentum_adjustment: Math.round(momentumAdjustment * 10) / 10,
+    volatility_penalty: Math.round(volatilityPenalty * 10) / 10,
     scarsian_score: scarsianScore,
-    career_growth_score: careerGrowthScore,
-    career_risk_score: careerRiskScore,
-    market_value_score: marketValueScore,
-    career_fit_score: careerFitScore,
-    gfi_score: gfiScore,
     career_alpha: careerAlpha,
     verdict,
+    confidence_score: confidenceScore,
+    insufficient_data: insufficientData,
   }
-}
-
-export function calculateConfidence(signalConfidences: number[]): number {
-  if (signalConfidences.length === 0) return 0
-  return clamp(avg(signalConfidences))
 }

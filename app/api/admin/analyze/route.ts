@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { collectCompanyData } from '@/lib/data-collection'
 import { analyzeSignals, generateAnalystNote } from '@/lib/signal-analysis'
-import { calculateScarsianScores, calculateConfidence, SIGNAL_NAMES } from '@/lib/scoring'
-import type { SignalScores } from '@/lib/scoring'
+import { calculateScarsianScores, SCORING_SIGNALS, CONFIDENCE_SIGNALS } from '@/lib/scoring'
+import type { ScoringSignals, ConfidenceInputs } from '@/lib/scoring'
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth check — must be admin
+    // Auth — admin only
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
     if (!companyName?.trim()) return NextResponse.json({ error: 'Company name required' }, { status: 400 })
 
     const admin = createAdminClient()
-    const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const slug = companyName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
-    // Upsert company
+    // Upsert company record
     const { data: company, error: companyError } = await admin
       .from('companies')
       .upsert({ name: companyName.trim(), slug }, { onConflict: 'slug' })
@@ -36,56 +36,73 @@ export async function POST(req: NextRequest) {
     // 1. Collect public data
     const sources = await collectCompanyData(companyName, market ?? '')
 
-    // 2. Save sources
+    // 2. Persist sources
     if (sources.length > 0) {
       await admin.from('company_sources').insert(
         sources.map(s => ({ ...s, company_id: company.id }))
       )
     }
 
-    // 3. Get source IDs for linking
     const { data: savedSources } = await admin
       .from('company_sources')
       .select('id')
       .eq('company_id', company.id)
       .order('created_at', { ascending: false })
-      .limit(sources.length)
+      .limit(sources.length || 1)
 
     const sourceIds = (savedSources ?? []).map(s => s.id)
 
-    // 4. AI analyzes evidence → proposes signal scores
+    // 3. AI proposes signal scores (AI never computes final score)
     const signalScores = await analyzeSignals(companyName, market ?? '', sources)
 
-    // 5. Build signal map for formula
-    const signalMap: Partial<SignalScores> = {}
+    // 4. Split signals into scoring vs confidence inputs
+    const scoringMap: Partial<ScoringSignals> = {}
+    const confidenceMap: Partial<ConfidenceInputs> = {}
+
     for (const sig of signalScores) {
-      const name = sig.signal_name as keyof SignalScores
-      if (SIGNAL_NAMES.includes(name as typeof SIGNAL_NAMES[number])) {
-        signalMap[name] = sig.score
+      if (SCORING_SIGNALS.includes(sig.signal_name as typeof SCORING_SIGNALS[number])) {
+        scoringMap[sig.signal_name as keyof ScoringSignals] = sig.score
+      } else if (CONFIDENCE_SIGNALS.includes(sig.signal_name as typeof CONFIDENCE_SIGNALS[number])) {
+        confidenceMap[sig.signal_name as keyof ConfidenceInputs] = sig.score
       }
     }
 
-    // Fill any missing with 50
-    for (const name of SIGNAL_NAMES) {
-      if (signalMap[name as keyof SignalScores] === undefined) {
-        signalMap[name as keyof SignalScores] = 50
-      }
+    // Fill missing with neutral defaults
+    for (const name of SCORING_SIGNALS) {
+      if (scoringMap[name] === undefined) scoringMap[name] = 50
+    }
+    for (const name of CONFIDENCE_SIGNALS) {
+      if (confidenceMap[name] === undefined) confidenceMap[name] = 20
     }
 
-    // 6. Calculate scores server-side (formula, not AI)
-    const calculatedScores = calculateScarsianScores(signalMap as SignalScores)
-    const confidenceScore = calculateConfidence(signalScores.map(s => s.confidence))
+    // 5. Backend calculates all scores — AI is not involved in this step
+    const calculatedScores = calculateScarsianScores(
+      scoringMap as ScoringSignals,
+      confidenceMap as ConfidenceInputs
+    )
 
-    // 7. Generate analyst note
-    const analystNote = await generateAnalystNote(companyName, market ?? '', { ...calculatedScores }, signalScores)
+    // 6. AI generates editable analyst note (never used to compute scores)
+    const analystNote = await generateAnalystNote(
+      companyName,
+      market ?? '',
+      calculatedScores,
+      signalScores
+    )
 
-    // 8. Create snapshot (status: draft)
+    // 7. Persist snapshot as draft
     const { data: snapshot, error: snapshotError } = await admin
       .from('company_score_snapshots')
       .insert({
         company_id: company.id,
-        ...calculatedScores,
-        confidence_score: confidenceScore,
+        scarsian_score: calculatedScores.scarsian_score,
+        career_growth_score: calculatedScores.career_growth_score,
+        career_risk_score: calculatedScores.career_risk_score,
+        market_value_score: calculatedScores.market_value_score,
+        career_fit_score: calculatedScores.career_fit_score,
+        gfi_score: calculatedScores.gfi_score,
+        career_alpha: calculatedScores.career_alpha,
+        confidence_score: calculatedScores.confidence_score,
+        verdict: calculatedScores.verdict,
         analyst_note: analystNote,
         status: 'draft',
       })
@@ -96,7 +113,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create snapshot', detail: snapshotError?.message }, { status: 500 })
     }
 
-    // 9. Save signal scores linked to snapshot
+    // 8. Persist signal scores linked to snapshot
     await admin.from('company_signal_scores').insert(
       signalScores.map(s => ({
         company_id: company.id,
@@ -110,7 +127,7 @@ export async function POST(req: NextRequest) {
       }))
     )
 
-    // 10. Save analyst note record
+    // 9. Persist analyst note record
     await admin.from('company_analyst_notes').insert({
       company_id: company.id,
       snapshot_id: snapshot.id,
@@ -123,7 +140,7 @@ export async function POST(req: NextRequest) {
       companyId: company.id,
       slug,
       scores: calculatedScores,
-      confidenceScore,
+      insufficientData: calculatedScores.insufficient_data,
       signalCount: signalScores.length,
       sourceCount: sources.length,
     })

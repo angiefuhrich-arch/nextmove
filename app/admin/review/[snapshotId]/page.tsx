@@ -45,15 +45,41 @@ interface Snapshot {
 }
 
 const SIGNAL_LABELS: Record<string, string> = {
-  financial_runway: 'Financial Runway',
-  ladder_speed: 'Ladder Speed',
-  skill_depreciation_risk: 'Skill Depreciation Risk',
+  // CGS
+  promotion_velocity: 'Promotion Velocity',
+  skill_transferability: 'Skill Transferability',
   network_multiplier: 'Network Multiplier',
-  layoff_convexity: 'Layoff Convexity',
-  reputation_stain_risk: 'Reputation Stain Risk',
+  // CRS
+  layoff_resilience: 'Layoff Resilience',
+  reputation_safety: 'Reputation Safety',
+  financial_stability: 'Financial Stability',
+  // MVS
   badge_premium: 'Badge Premium',
   talent_magnetism: 'Talent Magnetism',
   sector_optionality: 'Sector Optionality',
+  // CFS
+  culture_alignment: 'Culture Alignment',
+  // GFI
+  communication_accessibility: 'Communication Accessibility',
+  visa_accessibility: 'Visa Accessibility',
+  international_leadership: 'International Leadership',
+  expat_retention: 'Expat Retention',
+  language_accessibility: 'Language Accessibility',
+  regional_autonomy: 'Regional Autonomy',
+  // Adjustment
+  momentum_score: 'Momentum Score (50=neutral)',
+  volatility_score: 'Volatility Score (0=stable)',
+  // Confidence inputs
+  evidence_coverage: 'Evidence Coverage',
+  data_freshness: 'Data Freshness',
+  cross_source_agreement: 'Cross-Source Agreement',
+  sample_reliability: 'Sample Reliability',
+  // Legacy labels (kept for backward compat)
+  financial_runway: 'Financial Runway',
+  ladder_speed: 'Ladder Speed',
+  skill_depreciation_risk: 'Skill Depreciation Risk',
+  layoff_convexity: 'Layoff Convexity',
+  reputation_stain_risk: 'Reputation Stain Risk',
   cultural_velocity_match: 'Cultural Velocity Match',
   global_mobility_index: 'Global Mobility Index',
   english_working_language: 'English Working Language',
@@ -64,16 +90,14 @@ const SIGNAL_LABELS: Record<string, string> = {
   regional_office_culture: 'Regional Office Culture',
 }
 
-const SIGNAL_GROUPS = {
-  'Scarsian Index Signals': [
-    'financial_runway', 'ladder_speed', 'skill_depreciation_risk', 'network_multiplier',
-    'layoff_convexity', 'reputation_stain_risk', 'badge_premium', 'talent_magnetism',
-    'sector_optionality', 'cultural_velocity_match', 'global_mobility_index',
-  ],
-  'Global Fit Index (GFI) Signals': [
-    'english_working_language', 'visa_sponsorship_history', 'international_leadership_ratio',
-    'expat_retention_rate', 'cantonese_requirement_level', 'regional_office_culture',
-  ],
+const SIGNAL_GROUPS: Record<string, string[]> = {
+  'Career Growth Score (CGS)': ['promotion_velocity', 'skill_transferability', 'network_multiplier'],
+  'Career Risk Score (CRS)': ['layoff_resilience', 'reputation_safety', 'financial_stability'],
+  'Market Value Score (MVS)': ['badge_premium', 'talent_magnetism', 'sector_optionality'],
+  'Career Fit Score (CFS)': ['culture_alignment'],
+  'Global Fit Index (GFI)': ['communication_accessibility', 'visa_accessibility', 'international_leadership', 'expat_retention', 'language_accessibility', 'regional_autonomy'],
+  'Adjustment Layer': ['momentum_score', 'volatility_score'],
+  'Confidence Inputs': ['evidence_coverage', 'data_freshness', 'cross_source_agreement', 'sample_reliability'],
 }
 
 function ScoreBar({ score, confidence }: { score: number; confidence: number }) {
@@ -278,29 +302,39 @@ export default function ReviewPage({ params }: { params: Promise<{ snapshotId: s
 
         {/* Score summary */}
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <h2 className="text-sm font-semibold text-slate-900 mb-4">Calculated Scores</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-slate-900">Calculated Scores</h2>
+            {snapshot.confidence_score < 50 && (
+              <span className="text-xs font-semibold bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded-full flex items-center gap-1">
+                <AlertTriangle size={11} />
+                Insufficient Data — score will not display publicly
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {[
               { label: 'Scarsian Index', value: snapshot.scarsian_score, highlight: true },
-              { label: 'Career Growth', value: snapshot.career_growth_score },
-              { label: 'Career Risk Safety', value: snapshot.career_risk_score },
-              { label: 'Market Value', value: snapshot.market_value_score },
-              { label: 'Career Fit', value: snapshot.career_fit_score },
+              { label: 'Career Growth (CGS)', value: snapshot.career_growth_score },
+              { label: 'Career Risk (CRS)', value: snapshot.career_risk_score },
+              { label: 'Market Value (MVS)', value: snapshot.market_value_score },
+              { label: 'Career Fit (CFS)', value: snapshot.career_fit_score },
               { label: 'GFI Score', value: snapshot.gfi_score },
               { label: 'Career Alpha', value: snapshot.career_alpha, signed: true },
               { label: 'Confidence', value: snapshot.confidence_score, pct: true },
             ].map(({ label, value, highlight, signed, pct }) => (
               <div key={label} className={`rounded-lg p-3 ${highlight ? 'bg-slate-900 text-white' : 'bg-slate-50'}`}>
                 <p className={`text-xs mb-1 ${highlight ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-                <p className={`text-2xl font-bold ${highlight ? 'text-white' : 'text-slate-900'}`}>
-                  {signed && value > 0 ? '+' : ''}{value}{pct ? '%' : ''}
+                <p className={`text-xl font-bold ${highlight ? 'text-white' : 'text-slate-900'}`}>
+                  {snapshot.confidence_score < 50 && highlight
+                    ? 'N/A'
+                    : `${signed && value > 0 ? '+' : ''}${value}${pct ? '%' : ''}`}
                 </p>
               </div>
             ))}
           </div>
           <p className="text-xs text-slate-400 flex items-center gap-1">
             <AlertTriangle size={11} />
-            Scores are calculated by the backend formula using effective signal values (admin overrides take precedence).
+            All scores are calculated by the backend formula. AI never computes the final score. Admin overrides are applied before recalculation on approval.
           </p>
         </div>
 
