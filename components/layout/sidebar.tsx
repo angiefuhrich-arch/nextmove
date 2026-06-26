@@ -4,10 +4,11 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Search, BarChart3, BookmarkCheck,
-  Briefcase, CreditCard, LogOut, TrendingUp
+  Briefcase, CreditCard, LogOut, TrendingUp, ShieldCheck
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,6 +22,18 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+      setIsAdmin(!!data?.is_admin)
+    }
+    checkAdmin()
+  }, [])
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -56,6 +69,25 @@ export function Sidebar() {
             {label}
           </Link>
         ))}
+        {isAdmin && (
+          <>
+            <div className="pt-3 pb-1 px-3">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Admin</p>
+            </div>
+            <Link
+              href="/admin"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                pathname.startsWith('/admin')
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              )}
+            >
+              <ShieldCheck size={17} />
+              Pipeline
+            </Link>
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-slate-700/50">
