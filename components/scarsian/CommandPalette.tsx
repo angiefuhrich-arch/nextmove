@@ -4,20 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X } from 'lucide-react'
-
-// Static company list for command palette; will be replaced with API search in Phase 5
-const COMPANIES = [
-  { slug: 'hsbc', name: 'HSBC', industry: 'Banking' },
-  { slug: 'google', name: 'Google', industry: 'Technology' },
-  { slug: 'meta', name: 'Meta', industry: 'Technology' },
-  { slug: 'amazon', name: 'Amazon', industry: 'E-Commerce / Cloud' },
-  { slug: 'goldman-sachs', name: 'Goldman Sachs', industry: 'Investment Banking' },
-  { slug: 'stripe', name: 'Stripe', industry: 'Fintech' },
-  { slug: 'airbnb', name: 'Airbnb', industry: 'Travel / Technology' },
-  { slug: 'netflix', name: 'Netflix', industry: 'Streaming' },
-  { slug: 'canva', name: 'Canva', industry: 'Design / Technology' },
-  { slug: 'airwallex', name: 'Airwallex', industry: 'Fintech' },
-]
+import { companies } from '@/lib/data/mockData'
 
 interface CommandPaletteProps {
   open: boolean
@@ -30,7 +17,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
-  const filtered = COMPANIES.filter(c =>
+  const filtered = companies.filter(c =>
     c.name.toLowerCase().includes(query.toLowerCase()) ||
     c.industry.toLowerCase().includes(query.toLowerCase())
   )
@@ -38,41 +25,27 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   useEffect(() => { setSelectedIndex(0) }, [query])
   useEffect(() => {
     if (open && inputRef.current) inputRef.current.focus()
+    if (!open) setQuery('')
   }, [open])
-
-  // Cmd+K global shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        if (!open) {
-          // signal parent to open — in practice the parent manages this
-        }
-      }
-      if (e.key === 'Escape' && open) onClose()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [open, onClose])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex(p => (p + 1) % filtered.length)
+      setSelectedIndex(p => (p + 1) % Math.max(filtered.length, 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelectedIndex(p => (p - 1 + filtered.length) % filtered.length)
+      setSelectedIndex(p => (p - 1 + Math.max(filtered.length, 1)) % Math.max(filtered.length, 1))
     } else if (e.key === 'Enter' && filtered[selectedIndex]) {
-      router.push(`/company/${filtered[selectedIndex].slug}`)
+      router.push(`/report/${filtered[selectedIndex].id}`)
       onClose()
-      setQuery('')
+    } else if (e.key === 'Escape') {
+      onClose()
     }
   }
 
-  const navigate = (slug: string) => {
-    router.push(`/company/${slug}`)
+  const navigate = (id: string) => {
+    router.push(`/report/${id}`)
     onClose()
-    setQuery('')
   }
 
   return (
@@ -82,7 +55,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[400] flex items-start justify-center pt-[120px]"
           onClick={onClose}
         >
@@ -91,7 +64,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             initial={{ opacity: 0, scale: 0.96, y: -16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -16 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             onClick={e => e.stopPropagation()}
             className="relative w-full max-w-[640px] mx-4 bg-navy-dark border border-navy-light rounded-3xl shadow-modal overflow-hidden"
           >
@@ -103,7 +76,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search companies..."
+                placeholder="Search for a company..."
                 className="flex-1 bg-transparent text-white text-lg placeholder-white/30 outline-none"
               />
               <button onClick={onClose} className="p-1 rounded-md hover:bg-white/10 transition-colors">
@@ -114,8 +87,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             <div className="max-h-[400px] overflow-y-auto p-2">
               {filtered.length > 0 ? filtered.map((company, i) => (
                 <button
-                  key={company.slug}
-                  onClick={() => navigate(company.slug)}
+                  key={company.id}
+                  onClick={() => navigate(company.id)}
                   onMouseEnter={() => setSelectedIndex(i)}
                   className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-150 ${
                     i === selectedIndex
@@ -130,6 +103,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                     <div className="text-sm font-semibold text-white">{company.name}</div>
                     <div className="text-xs text-white/50">{company.industry}</div>
                   </div>
+                  <div className="text-sm font-bold text-white">{company.indexScore}</div>
                 </button>
               )) : (
                 <div className="flex flex-col items-center gap-3 py-12 text-white/50">

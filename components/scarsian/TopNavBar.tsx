@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Command, Sparkles } from 'lucide-react'
 import { CommandPalette } from './CommandPalette'
 
@@ -11,9 +11,20 @@ export function TopNavBar() {
   const isHome = pathname === '/'
   const [paletteOpen, setPaletteOpen] = useState(false)
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setPaletteOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 h-14 nav-blur border-b border-white/[0.06] z-[100] flex items-center justify-between px-4 md:px-5">
+      <header className="fixed top-0 left-0 right-0 h-14 bg-navy/70 backdrop-blur-xl border-b border-white/[0.06] z-[100] flex items-center justify-between px-4 md:px-5">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <ScarsianIcon />
@@ -38,32 +49,31 @@ export function TopNavBar() {
         {/* Right */}
         <div className="flex items-center gap-2">
           {!isHome && (
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/40 hover:text-blue hover:bg-blue/10 transition-all"
-              title="Home"
-            >
+            <Link href="/" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/40 hover:text-blue hover:bg-blue/10 transition-all" title="Home">
               <Sparkles className="w-3.5 h-3.5" />
             </Link>
           )}
-          <Link
-            href="/wallet"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] hover:bg-white/10 transition-all"
-          >
+          <Link href="/wallet" className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] hover:bg-white/10 transition-all">
             <span className="text-blue font-semibold">3</span>
             <span className="text-white/40 hidden sm:inline">credits</span>
           </Link>
-          <Link
-            href="/account"
-            className="w-8 h-8 rounded-full bg-navy-light flex items-center justify-center text-xs font-bold text-white hover:bg-blue/20 transition-colors"
-          >
-            A
-          </Link>
+          <UserAvatar />
         </div>
       </header>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </>
+  )
+}
+
+function UserAvatar() {
+  return (
+    <Link
+      href="/account"
+      className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center text-[10px] font-bold text-white hover:bg-white/15 transition-colors border border-white/10"
+    >
+      SC
+    </Link>
   )
 }
 

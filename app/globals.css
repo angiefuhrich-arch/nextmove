@@ -108,7 +108,7 @@
     filter: blur(40px);
   }
 
-  /* Floating orbs for hero sections */
+  /* Floating orbs for hero sections (class variant) */
   .ambient-orbs {
     position: absolute;
     inset: 0;
@@ -137,6 +137,37 @@
     background: radial-gradient(circle, rgba(59,91,255,0.08) 0%, transparent 55%);
     filter: blur(50px);
     animation: orbFloat2 15s ease-in-out infinite;
+  }
+
+  /* Self-contained orb element (design v2 uses a div with this class) */
+  .ambient-glow-orbs {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ambient-glow-orbs::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 25%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(59,91,255,0.14) 0%, transparent 60%);
+    filter: blur(80px);
+    animation: orbFloat1 14s ease-in-out infinite;
+  }
+  .ambient-glow-orbs::after {
+    content: '';
+    position: absolute;
+    bottom: 10%;
+    right: 15%;
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(ellipse, rgba(59,91,255,0.08) 0%, transparent 55%);
+    filter: blur(60px);
+    animation: orbFloat2 18s ease-in-out infinite;
   }
 
   @keyframes orbFloat1 {

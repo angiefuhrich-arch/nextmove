@@ -1,133 +1,137 @@
 'use client'
-import { useState } from 'react'
-import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { MOCK_COMPANIES, MOCK_REPORTS } from '@/lib/mock-data'
-import { Progress } from '@/components/ui/progress'
-import { getVerdictLabel, getVerdictColor } from '@/lib/utils'
-import { BarChart3 } from 'lucide-react'
 
-const COMPARE_DIMENSIONS = [
-  'Financial Stability', 'Compensation', 'Culture', 'Career Growth',
-  'Layoff Risk', 'Work-Life Balance', 'Leadership', 'Employee Sentiment'
-]
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { GitCompare, X, Plus, Search } from 'lucide-react'
+import { companies } from '@/lib/data/mockData'
+import { VerdictBadge } from '@/components/scarsian/VerdictBadge'
+import { Footer } from '@/components/scarsian/Footer'
 
 export default function ComparePage() {
-  const [selected, setSelected] = useState<string[]>([])
+  const router = useRouter()
+  const [selected, setSelected] = useState<string[]>(['stripe', 'netflix'])
 
-  const toggle = (slug: string) => {
-    setSelected(prev =>
-      prev.includes(slug)
-        ? prev.filter(s => s !== slug)
-        : prev.length < 3 ? [...prev, slug] : prev
-    )
+  const selectedCompanies = companies.filter(c => selected.includes(c.id))
+  const available = companies.filter(c => !selected.includes(c.id))
+
+  const add = (id: string) => {
+    if (selected.length < 3) setSelected(prev => [...prev, id])
   }
+  const remove = (id: string) => setSelected(prev => prev.filter(x => x !== id))
 
-  const companyReports = selected.map(slug => ({
-    company: MOCK_COMPANIES.find(c => c.slug === slug)!,
-    report: MOCK_REPORTS[slug]!,
-  })).filter(x => x.company && x.report)
+  const metricKeys = selectedCompanies[0]?.categories.map(c => c.name) ?? []
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-5xl">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Compare Companies</h1>
-          <p className="text-slate-500 text-sm mt-1">Select 2–3 companies to compare side by side.</p>
-        </div>
+    <div className="min-h-screen pt-16">
+      <div className="max-w-[1000px] mx-auto px-6 py-12">
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+          <div className="flex items-center gap-2 mb-2">
+            <GitCompare className="w-5 h-5 text-blue" />
+            <h1 className="text-2xl font-bold text-white">Compare Companies</h1>
+          </div>
+          <p className="text-sm text-white/50">Side-by-side intelligence across all categories. Up to 3 companies.</p>
+        </motion.div>
 
         {/* Company selector */}
-        <div>
-          <p className="text-sm font-medium text-slate-700 mb-3">Select companies ({selected.length}/3 selected)</p>
-          <div className="flex flex-wrap gap-2">
-            {MOCK_COMPANIES.map((c) => (
-              <button
-                key={c.slug}
-                onClick={() => toggle(c.slug)}
-                disabled={!selected.includes(c.slug) && selected.length >= 3}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  selected.includes(c.slug)
-                    ? 'bg-slate-900 border-slate-900 text-white'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400 disabled:opacity-40'
-                }`}
-              >
-                {c.name}
+        <div className="flex flex-wrap gap-3 mb-8">
+          {selectedCompanies.map(c => (
+            <div key={c.id} className="flex items-center gap-2 px-4 py-2 bg-blue/15 border border-blue/30 rounded-xl text-sm text-white">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold">
+                {c.name.substring(0, 2).toUpperCase()}
+              </div>
+              {c.name}
+              <button onClick={() => remove(c.id)} className="text-white/40 hover:text-white transition-colors">
+                <X className="w-3.5 h-3.5" />
               </button>
-            ))}
-          </div>
+            </div>
+          ))}
+          {selected.length < 3 && available.map(c => (
+            <button
+              key={c.id}
+              onClick={() => add(c.id)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white/40 hover:text-white hover:border-white/20 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {c.name}
+            </button>
+          ))}
         </div>
 
-        {companyReports.length >= 2 ? (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            {/* Header */}
-            <div className={`grid gap-0`} style={{ gridTemplateColumns: `200px repeat(${companyReports.length}, 1fr)` }}>
-              <div className="p-4 bg-slate-50 border-b border-slate-200" />
-              {companyReports.map(({ company, report }) => (
-                <div key={company.slug} className="p-4 bg-slate-50 border-b border-l border-slate-200 text-center">
-                  <div className="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center font-bold text-slate-700 mx-auto mb-2">
-                    {company.name.charAt(0)}
-                  </div>
-                  <p className="font-semibold text-slate-900 text-sm">{company.name}</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">{report.overall_score}</p>
-                  <p className={`text-xs font-semibold ${getVerdictColor(report.verdict)}`}>
-                    {getVerdictLabel(report.verdict)}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Dimension rows */}
-            {COMPARE_DIMENSIONS.map((dim) => (
-              <div
-                key={dim}
-                className={`grid gap-0 border-b border-slate-100`}
-                style={{ gridTemplateColumns: `200px repeat(${companyReports.length}, 1fr)` }}
-              >
-                <div className="p-4 flex items-center">
-                  <span className="text-sm font-medium text-slate-700">{dim}</span>
-                </div>
-                {companyReports.map(({ company, report }) => {
-                  const cat = report.categories.find(c => c.category === dim)
-                  const score = cat?.score ?? 0
-                  const status = cat?.status ?? 'yellow'
-                  return (
-                    <div key={company.slug} className="p-4 border-l border-slate-100">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-semibold text-slate-900">{score}</span>
-                        <span className={`text-xs font-medium ${
-                          status === 'green' ? 'text-green-600' : status === 'red' ? 'text-red-600' : 'text-yellow-600'
-                        }`}>{score >= 70 ? '●' : score >= 45 ? '●' : '●'}</span>
-                      </div>
-                      <Progress value={score} color={status} />
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
-
-            {/* Recommendation row */}
-            <div
-              className="grid gap-0"
-              style={{ gridTemplateColumns: `200px repeat(${companyReports.length}, 1fr)` }}
-            >
-              <div className="p-4 flex items-center bg-slate-50">
-                <span className="text-sm font-semibold text-slate-700">Verdict</span>
-              </div>
-              {companyReports.map(({ company, report }) => (
-                <div key={company.slug} className="p-4 border-l border-slate-100 bg-slate-50 text-center">
-                  <span className={`text-sm font-bold ${getVerdictColor(report.verdict)}`}>
-                    {getVerdictLabel(report.verdict)}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {selectedCompanies.length < 2 ? (
+          <div className="flex flex-col items-center gap-4 py-20 text-white/40">
+            <Search className="w-10 h-10 text-white/20" />
+            <p>Select at least 2 companies to compare</p>
           </div>
         ) : (
-          <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
-            <BarChart3 size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="font-medium">Select at least 2 companies to compare</p>
-          </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="text-left py-3 pr-6 text-[11px] font-semibold uppercase tracking-wider text-white/40 w-36">Metric</th>
+                  {selectedCompanies.map(c => (
+                    <th key={c.id} className="py-3 px-4 text-center">
+                      <button onClick={() => router.push(`/report/${c.id}`)} className="hover:text-blue transition-colors">
+                        <div className="text-sm font-bold text-white">{c.name}</div>
+                        <div className="text-[11px] text-white/40">{c.industry}</div>
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {/* Index score */}
+                <tr className="border-t border-white/[0.06]">
+                  <td className="py-4 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">Scarsian Index</td>
+                  {selectedCompanies.map(c => (
+                    <td key={c.id} className="py-4 px-4 text-center">
+                      <div className="text-3xl font-bold text-white">{c.indexScore}</div>
+                    </td>
+                  ))}
+                </tr>
+                {/* Verdict */}
+                <tr className="border-t border-white/[0.06]">
+                  <td className="py-4 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">Verdict</td>
+                  {selectedCompanies.map(c => (
+                    <td key={c.id} className="py-4 px-4 text-center">
+                      <VerdictBadge verdict={c.verdict} size="sm" />
+                    </td>
+                  ))}
+                </tr>
+                {/* Confidence */}
+                <tr className="border-t border-white/[0.06]">
+                  <td className="py-4 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">Confidence</td>
+                  {selectedCompanies.map(c => (
+                    <td key={c.id} className="py-4 px-4 text-center">
+                      <span className="text-sm font-semibold text-white">{c.confidence}%</span>
+                    </td>
+                  ))}
+                </tr>
+                {/* Category scores */}
+                {metricKeys.map(metric => (
+                  <tr key={metric} className="border-t border-white/[0.06]">
+                    <td className="py-3.5 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">{metric}</td>
+                    {selectedCompanies.map(c => {
+                      const cat = c.categories.find(x => x.name === metric)
+                      const score = cat?.score ?? 0
+                      const best = Math.max(...selectedCompanies.map(x => x.categories.find(y => y.name === metric)?.score ?? 0))
+                      return (
+                        <td key={c.id} className="py-3.5 px-4 text-center">
+                          <span className={`text-sm font-bold ${score === best ? 'text-verdict-green' : 'text-white/70'}`}>
+                            {score}
+                          </span>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
         )}
       </div>
-    </DashboardLayout>
+      <Footer />
+    </div>
   )
 }
