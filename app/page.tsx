@@ -1,181 +1,211 @@
-import Link from 'next/link'
-import { Navbar } from '@/components/layout/navbar'
-import { TrendingUp, Shield, Zap, Globe, Star, CheckCircle2 } from 'lucide-react'
+'use client'
 
-const FEATURES = [
-  { icon: Globe, title: 'Global Fit Index (GFI)', desc: 'Unique score for international professionals — visa history, English environment, expat retention, and more.' },
-  { icon: TrendingUp, title: 'Scarsian Index', desc: 'Every company rated 0–100 across 11 career dimensions built for Asia-Pacific markets.' },
-  { icon: Shield, title: 'Layoff Convexity', desc: 'Asymmetric risk analysis — understand downside exposure before you sign.' },
-  { icon: Zap, title: 'AI Career Intelligence', desc: 'Instant analyst-grade summaries, verdicts, and offer guidance powered by AI.' },
+import { useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import {
+  Search, Command, TrendingUp, Zap, Shield, Clock,
+  Briefcase, Target, Sparkles, BarChart3, Globe, ArrowRight,
+} from 'lucide-react'
+import { CommandPalette } from '@/components/scarsian/CommandPalette'
+import { Footer } from '@/components/scarsian/Footer'
+import { TopNavBar } from '@/components/scarsian/TopNavBar'
+import { VerdictBadge } from '@/components/scarsian/VerdictBadge'
+
+const BRIEF_ITEMS = [
+  { icon: TrendingUp, text: '3 companies improved their Scarsian Index this week.', color: 'text-verdict-green' },
+  { icon: Zap,        text: 'New GFI data added for HSBC Hong Kong.', color: 'text-blue' },
+  { icon: Sparkles,   text: 'Google now ranks #1 for Global Friendliness in HK.', color: 'text-verdict-green' },
+  { icon: Shield,     text: 'Goldman Sachs confidence score increased to 82%.', color: 'text-blue' },
+  { icon: Clock,      text: '3 free credits available on your account.', color: 'text-white/40' },
 ]
 
-const COMPANIES = ['HSBC', 'Google', 'Meta', 'Amazon', 'Microsoft', 'Stripe', 'Canva', 'Salesforce', 'HubSpot', 'Revolut', 'Airwallex', 'Glue Up']
+const FEATURED = [
+  { slug: 'hsbc',         name: 'HSBC Hong Kong',  industry: 'Banking',         score: 74, verdict: 'strong'  as const },
+  { slug: 'google',       name: 'Google',           industry: 'Technology',      score: 81, verdict: 'strong'  as const },
+  { slug: 'goldman-sachs',name: 'Goldman Sachs',    industry: 'Investment Bank', score: 69, verdict: 'caution' as const },
+  { slug: 'meta',         name: 'Meta',             industry: 'Technology',      score: 58, verdict: 'caution' as const },
+]
 
-export default function Home() {
+export default function HomePage() {
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #0B1D3A 0%, #0A1630 50%, #050D18 100%)' }}
+    >
+      <div className="ambient-orbs" />
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            <Star size={14} />
-            Built for International Professionals in Asia
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
-            Know before you<br />
-            <span className="text-green-600">cross the border.</span>
-          </h1>
-          <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Scarsian uses AI to analyze company reputation, career growth, compensation, culture,
-            layoff risk, and global fit — so international professionals in Hong Kong and Asia
-            can make smarter career decisions.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3.5 rounded-lg transition-colors text-base"
-            >
-              <Zap size={18} />
-              Start Free
-            </Link>
-            <Link
-              href="/search"
-              className="inline-flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-900 font-semibold px-8 py-3.5 rounded-lg transition-colors text-base"
-            >
-              Analyze a Company
-            </Link>
-          </div>
-          <p className="text-sm text-slate-400 mt-4">Free plan · 3 reports/month · No credit card required</p>
-        </div>
-      </section>
+      {/* Ambient glow centre */}
+      <div
+        className="absolute top-[20%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] pointer-events-none z-0"
+        style={{
+          background: 'radial-gradient(ellipse, rgba(59,91,255,0.16) 0%, rgba(59,91,255,0.05) 35%, transparent 65%)',
+          filter: 'blur(40px)',
+        }}
+      />
 
-      {/* Verdict preview */}
-      <section className="py-12 bg-slate-50">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Strong Move', color: 'border-green-200 bg-green-50', text: 'text-green-700', dot: 'bg-green-500', desc: 'Clear opportunity — strong fundamentals' },
-              { label: 'Think Twice', color: 'border-yellow-200 bg-yellow-50', text: 'text-yellow-700', dot: 'bg-yellow-500', desc: 'Proceed carefully — mixed signals' },
-              { label: 'No-Go', color: 'border-red-200 bg-red-50', text: 'text-red-700', dot: 'bg-red-500', desc: 'Significant risks — avoid for now' },
-            ].map((v) => (
-              <div key={v.label} className={`rounded-xl border ${v.color} p-5`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-3 h-3 rounded-full ${v.dot}`} />
-                  <span className={`font-bold text-lg ${v.text}`}>{v.label}</span>
-                </div>
-                <p className="text-sm text-slate-600">{v.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TopNavBar />
 
-      {/* Features */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 mb-3">Intelligence built for Asia careers</h2>
-            <p className="text-slate-500">The only platform with a Global Fit Index for international professionals.</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex gap-4 p-6 rounded-xl border border-slate-200 bg-white">
-                <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center shrink-0">
-                  <Icon size={18} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 mb-1">{title}</h3>
-                  <p className="text-sm text-slate-500">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <div className="relative z-10 max-w-[720px] mx-auto px-6 pt-28 md:pt-36 pb-16">
 
-      {/* Companies */}
-      <section className="py-16 bg-slate-50 px-6">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-3">Companies we cover</h2>
-          <p className="text-slate-500 mb-8 text-sm">Analyst-grade intelligence on employers across Hong Kong, APAC, and global tech</p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            {COMPANIES.map((c) => (
-              <Link
-                key={c}
-                href={`/company/${c.toLowerCase().replace(/\s+/g, '-')}`}
-                className="px-4 py-2 rounded-full border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900 transition-colors"
+        {/* Morning Brief */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-14">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-blue" />
+            <span className="text-[11px] font-bold uppercase tracking-[2px] text-blue">Intelligence Brief</span>
+          </div>
+          <h2 className="text-lg text-white/80 mb-4 font-light">Good morning.</h2>
+          <div className="flex flex-col gap-2">
+            {BRIEF_ITEMS.map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.08 * i }}
+                className="flex items-center gap-3 text-sm"
               >
-                {c}
+                <item.icon className={`w-3.5 h-3.5 ${item.color} flex-shrink-0`} />
+                <span className="text-white/60">{item.text}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Search — the hero */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mb-4"
+        >
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="w-full flex items-center gap-4 px-6 py-5 rounded-2xl bg-white/[0.05] border border-white/15 text-white/35 hover:text-white/60 hover:border-blue/40 hover:bg-white/[0.08] hover:shadow-[0_0_30px_rgba(59,91,255,0.12)] transition-all duration-300 group"
+          >
+            <Search className="w-5 h-5" />
+            <span className="text-lg">Search any company...</span>
+            <div className="ml-auto flex items-center gap-1 text-[10px] text-white/25 border border-white/15 rounded px-2 py-0.5">
+              <Command className="w-3 h-3" />
+              <span>K</span>
+            </div>
+          </button>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="text-center text-xs text-white/35 mb-16 tracking-wide"
+        >
+          Know before you cross the border.
+        </motion.p>
+
+        {/* Featured companies */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-12"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Globe className="w-3.5 h-3.5 text-blue" />
+              <span className="text-xs font-semibold text-white uppercase tracking-wide">Hong Kong Intelligence</span>
+            </div>
+            <Link href="/search" className="text-[11px] text-blue hover:underline">
+              Browse all →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {FEATURED.map((c) => (
+              <Link
+                key={c.slug}
+                href={`/company/${c.slug}`}
+                className="flex items-center gap-3.5 p-4 rounded-xl bg-white/[0.04] border border-white/[0.07] hover:border-blue/40 hover:bg-white/[0.08] transition-all duration-200 group"
+              >
+                <div className="w-9 h-9 rounded-full bg-white/[0.08] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                  {c.name.substring(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-white truncate">{c.name}</div>
+                  <div className="text-[11px] text-white/40">{c.industry}</div>
+                </div>
+                <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
+                  <div className="text-xl font-bold text-white tabular-nums">{c.score}</div>
+                  <VerdictBadge verdict={c.verdict} size="sm" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-blue/60 transition-colors flex-shrink-0" />
               </Link>
             ))}
           </div>
-        </div>
-      </section>
+        </motion.div>
 
-      {/* Pricing preview */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-slate-900 mb-3">Start free. Upgrade when ready.</h2>
-          <p className="text-slate-500 mb-10">Priced for Hong Kong and Asia-Pacific professionals.</p>
-          <div className="grid md:grid-cols-3 gap-6 text-left">
-            {[
-              { name: 'Free', price: 'HK$0', features: ['3 company reports/month', 'Scarsian Index score', 'Basic AI summary'] },
-              { name: 'Pro', price: 'HK$98/mo', features: ['Unlimited reports', 'Full AI analysis', 'Global Fit Index', 'Company comparison', 'Offer assistant'], highlight: true },
-              { name: 'Premium', price: 'HK$228/mo', features: ['Everything in Pro', 'CV fit analysis', 'Salary negotiation', 'Career recommendations', 'Priority AI reports'] },
-            ].map((plan) => (
-              <div key={plan.name} className={`rounded-xl border p-6 ${plan.highlight ? 'border-green-500 bg-green-50 ring-2 ring-green-500' : 'border-slate-200 bg-white'}`}>
-                <div className="mb-4">
-                  <div className="font-bold text-slate-900 mb-0.5">{plan.name}</div>
-                  <div className="text-2xl font-bold text-slate-900">{plan.price}</div>
-                </div>
-                <ul className="space-y-2">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
-                      <CheckCircle2 size={14} className="text-green-500 shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        {/* Quick nav */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          className="flex items-center justify-center gap-2.5 flex-wrap"
+        >
+          {[
+            { label: 'Intelligence Workspace', icon: BarChart3, path: '/admin' },
+            { label: 'Career Wallet',          icon: Briefcase, path: '/wallet' },
+            { label: 'Compare',                icon: Target,    path: '/compare' },
+          ].map(item => (
+            <Link
+              key={item.path}
+              href={item.path}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-xs text-white/50 hover:text-white hover:border-white/15 hover:bg-white/[0.08] transition-all"
+            >
+              <item.icon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{item.label}</span>
+            </Link>
+          ))}
+        </motion.div>
 
-      {/* CTA */}
-      <section className="py-20 bg-slate-900 px-6">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Make your next career move with confidence</h2>
-          <p className="text-slate-400 mb-8">Join international professionals using Scarsian to evaluate companies before they say yes.</p>
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-white font-bold px-8 py-3.5 rounded-lg transition-colors text-base"
+        {/* Hero sub-text for non-signed-in visitors */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-24 text-center"
+        >
+          <div
+            className="text-4xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-6 animate-glow-pulse"
+            style={{
+              textShadow: '0 0 40px rgba(59,91,255,0.3), 0 0 80px rgba(59,91,255,0.2), 0 4px 8px rgba(0,0,0,0.3)',
+            }}
           >
-            Get started free
-          </Link>
-        </div>
-      </section>
+            Know before you<br />cross the border.
+          </div>
+          <p className="text-white/40 text-base max-w-md mx-auto mb-8 leading-relaxed">
+            AI-powered career intelligence for international professionals in Hong Kong and Asia.
+            Scarsian Index, GFI, and analyst-grade company reports.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              href="/signup"
+              className="px-6 py-3 rounded-xl bg-blue hover:bg-blue-hover text-white font-semibold text-sm transition-colors flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Start Free — 3 Credits
+            </Link>
+            <Link
+              href="/pricing"
+              className="px-6 py-3 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/20 font-medium text-sm transition-all"
+            >
+              View Pricing
+            </Link>
+          </div>
+        </motion.div>
+      </div>
 
-      {/* Footer */}
-      <footer className="py-8 border-t border-slate-200 px-6">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
-              <TrendingUp size={12} className="text-white" />
-            </div>
-            <span className="font-bold text-slate-900 text-sm">Scarsian</span>
-            <span className="text-slate-400 text-xs ml-1">Career Intelligence Platform</span>
-          </div>
-          <p className="text-xs text-slate-400">© 2025 Scarsian. Know before you cross the border.</p>
-          <div className="flex gap-4 text-xs text-slate-500">
-            <Link href="/pricing" className="hover:text-slate-900">Pricing</Link>
-            <Link href="/login" className="hover:text-slate-900">Login</Link>
-            <Link href="/signup" className="hover:text-slate-900">Sign Up</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   )
 }
