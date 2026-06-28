@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Generate Brief
 // Phase D: Use AI to write analyst prose from structured intelligence (never from raw text).
 // Currently: stub.

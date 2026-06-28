@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Source Tier Classification
 // Tier 1: Official / regulator / government / company filing
 // Tier 2: Structured data providers / job APIs / verified aggregators

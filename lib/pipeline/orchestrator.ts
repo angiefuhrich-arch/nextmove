@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Pipeline Orchestrator — Supabase-persistent, survives restarts.
 // Each step is atomic: status is written to pipeline_runs before step begins.
 // On server restart the frontend can poll status and get live state from DB.

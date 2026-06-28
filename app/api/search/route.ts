@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { requireAuth, getClientIp } from '@/lib/security/auth'
+import { rateLimit, LIMITS } from '@/lib/security/rate-limit'
+import { parseQuery, SearchSchema } from '@/lib/security/validate'
+import { log } from '@/lib/security/log'
 
 function normalize(query: string): string {
   return query
@@ -12,9 +16,31 @@ function normalize(query: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const q = request.nextUrl.searchParams.get('q')?.trim()
-  if (!q || q.length < 2) {
-    return NextResponse.json({ error: 'Query too short' }, { status: 400 })
+  // Input validation
+  const parsed = parseQuery(SearchSchema, request.nextUrl.searchParams)
+  if (!parsed.success) return parsed.error
+
+  const q = parsed.data.q
+  const ip = getClientIp(request)
+
+  // Auth check (search allows anonymous but rate-limits more strictly)
+  const authResult = await requireAuth()
+  const isAuthed = authResult.error === null
+  const userId = isAuthed ? authResult.user.id : null
+
+  // Rate limit: authenticated users get 30/10min; anonymous gets 10/min by IP
+  if (userId) {
+    const limited = await rateLimit(request, userId, LIMITS.SEARCH_USER)
+    if (limited) {
+      log.rateLimitHit(userId, 'search:user', ip)
+      return limited
+    }
+  } else {
+    const limited = await rateLimit(request, `ip:${ip}`, LIMITS.SEARCH_IP)
+    if (limited) {
+      log.rateLimitHit(`ip:${ip}`, 'search:ip', ip)
+      return limited
+    }
   }
 
   const normalized = normalize(q)
@@ -51,15 +77,14 @@ export async function GET(request: NextRequest) {
     if (e && !seen.has(e.id)) { seen.add(e.id); results.push(e) }
   }
 
-  // Log search (best-effort, no auth required)
-  const { data: { user } } = await supabase.auth.getUser()
-  await supabase.from('entity_search_logs').insert({
-    user_id: user?.id ?? null,
-    raw_query: q,
+  // Log search (best-effort)
+  supabase.from('entity_search_logs').insert({
+    user_id:        userId,
+    raw_query:      q,
     normalized,
     matched_entity: results[0]?.id ?? null,
-    cache_hit: results.length > 0,
-  })
+    cache_hit:      results.length > 0,
+  }).then(() => {})
 
   if (results.length > 0) {
     return NextResponse.json({ hit: true, results })

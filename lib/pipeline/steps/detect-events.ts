@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Detect Events
 // Phase D: Cluster evidence into discrete employer events (layoff, funding, leadership change…).
 // Currently: stub.

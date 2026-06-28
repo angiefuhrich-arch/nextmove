@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Pipeline DAL — all Supabase interactions for pipeline_runs and related tables.
 // Uses service role client (server-side only). Never import this in browser code.
 
@@ -207,26 +209,59 @@ export async function updateSourceFetch(
 // Evidence records
 // ----------------------------------------------------------------
 
-export async function insertEvidenceRecord(ev: EvidenceInsert): Promise<string> {
+export async function insertEvidenceRecord(ev: EvidenceInsert): Promise<string | null> {
+  // Lazy import to avoid circular deps
+  const { hashEvidence, normalizeSourceUrl } = await import('@/lib/security/evidence')
+
+  const sourceUrl        = ev.sourceUrl ?? ''
+  const normalizedUrl    = normalizeSourceUrl(sourceUrl)
+  const evidenceHash     = hashEvidence(sourceUrl, ev.rawText)
+
   const db = createAdminClient()
+
+  // Deduplication: if same hash+entity already exists, mark as duplicate
+  let duplicateOfId: string | null = null
+  if (ev.entityId) {
+    const { data: existing } = await db
+      .from('evidence_records')
+      .select('id')
+      .eq('entity_id', ev.entityId)
+      .eq('evidence_hash', evidenceHash)
+      .eq('is_duplicate', false)
+      .maybeSingle()
+
+    if (existing) {
+      duplicateOfId = existing.id as string
+    }
+  }
+
   const { data, error } = await db
     .from('evidence_records')
     .insert({
-      pipeline_run_id:     ev.pipelineRunId,
-      entity_id:           ev.entityId ?? null,
-      source_candidate_id: ev.sourceCandidateId ?? null,
-      evidence_type:       ev.evidenceType,
-      raw_text:            ev.rawText,
-      structured_data:     ev.structuredData ?? null,
-      source_url:          ev.sourceUrl ?? null,
-      source_tier:         ev.sourceTier,
-      pipeline_version:    ev.pipelineVersion ?? PIPELINE_VERSION,
-      collected_at:        new Date().toISOString(),
+      pipeline_run_id:      ev.pipelineRunId,
+      entity_id:            ev.entityId ?? null,
+      source_candidate_id:  ev.sourceCandidateId ?? null,
+      evidence_type:        ev.evidenceType,
+      raw_text:             ev.rawText,
+      structured_data:      ev.structuredData ?? null,
+      source_url:           sourceUrl || null,
+      normalized_source_url: normalizedUrl || null,
+      source_tier:          ev.sourceTier,
+      pipeline_version:     ev.pipelineVersion ?? PIPELINE_VERSION,
+      evidence_hash:        evidenceHash,
+      is_duplicate:         duplicateOfId !== null,
+      duplicate_of_id:      duplicateOfId,
+      collected_at:         new Date().toISOString(),
     })
     .select('id')
     .single()
-  if (error || !data) throw new Error(`Failed to insert evidence record: ${error?.message}`)
-  return data.id as string
+
+  if (error) {
+    // Unique constraint violation = genuine duplicate; not an error
+    if (error.code === '23505') return null
+    throw new Error(`Failed to insert evidence record: ${error.message}`)
+  }
+  return data?.id as string ?? null
 }
 
 export async function getEvidenceCount(runId: string, maxTier = 3): Promise<number> {

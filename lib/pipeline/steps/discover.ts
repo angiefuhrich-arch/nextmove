@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Discover
 // Uses Brave Search to find sources and entity candidates for the target employer.
 // Falls back to a structured stub when BRAVE_SEARCH_API_KEY is not configured.

@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Verify
 // Examines entity_candidates to pick the best match, resolves against the
 // entities table, creates a new entity record if needed, and stores aliases.

@@ -27,19 +27,31 @@ const SIGNAL_CATEGORY_MAP: Record<string, 'cgs' | 'crs' | 'mvs' | 'cfs' | 'gfi' 
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth — admin only
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Auth — admin only (uses shared helper, audited)
+    const { requireAdmin } = await import('@/lib/security/auth')
+    const { auditLog, requestMeta } = await import('@/lib/security/audit')
+    const auth = await requireAdmin(req)
+    if (auth.error) return auth.error
 
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-    if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    let body: unknown
+    try { body = await req.json() } catch { body = {} }
+    const bodyObj = body as Record<string, unknown>
+    const companyName = typeof bodyObj.companyName === 'string' ? bodyObj.companyName : ''
+    const market = typeof bodyObj.market === 'string' ? bodyObj.market : ''
+    if (!companyName.trim()) {
+      return NextResponse.json({ error: 'Company name required' }, { status: 400 })
+    }
 
-    const { companyName, market } = await req.json()
-    if (!companyName?.trim()) return NextResponse.json({ error: 'Company name required' }, { status: 400 })
+    await auditLog({
+      adminUserId: auth.user.id,
+      action: 'analyze_company',
+      targetTable: 'companies',
+      targetId: companyName as string,
+      ...requestMeta(req),
+    })
 
     const admin = createAdminClient()
-    const trimmed = companyName.trim()
+    const trimmed = (companyName as string).trim()
     const slug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
     // ── 1. Upsert legacy company (bridge until full v3 migration)
@@ -87,7 +99,7 @@ export async function POST(req: NextRequest) {
         source_url: s.source_url ?? null,
         source_title: s.source_title ?? null,
         content_summary: s.raw_text ?? s.source_title ?? 'Source',
-        collected_by: user.id,
+        collected_by: auth.user.id,
         default_expiry_days: 90,
       }).catch(() => null))),
     ])
@@ -115,7 +127,7 @@ export async function POST(req: NextRequest) {
     try {
       engineResult = await runIntelligenceEngines({
         entityId: entity.id,
-        userId: user.id,
+        userId: auth.user.id,
         runTrigger: 'admin_refresh',
       })
     } catch {
@@ -170,7 +182,7 @@ export async function POST(req: NextRequest) {
         entity.id,
         engineResult,
         [],
-        user.id
+        auth.user.id
       )
       newSnapshotId = newSnapshot.id
       // Record initial trend point (draft — records even before approval for trend history)
@@ -222,7 +234,7 @@ export async function POST(req: NextRequest) {
       company_id:  company.id,
       snapshot_id: legacySnapshot.id,
       note:        analystNote,
-      created_by:  user.id,
+      created_by:  auth.user.id,
     })
 
     // ── 13. Persist new-system analyst report
@@ -232,7 +244,7 @@ export async function POST(req: NextRequest) {
         snapshot_id: newSnapshotId,
         title:       `${trimmed} Intelligence Report`,
         summary:     analystNote,
-        created_by:  user.id,
+        created_by:  auth.user.id,
       }).catch(() => null)
     }
 

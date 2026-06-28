@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Generate Signals
 // Phase D: Convert events into scored signals mapped to intelligence pillars.
 // Currently: stub.

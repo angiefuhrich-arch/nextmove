@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Collect
 // Fetches content from Tier 1–3 source candidates discovered in the previous step.
 // Tier 4 (LinkedIn, Glassdoor, Blind, Reddit, etc.) is excluded entirely.

@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Score
 // Phase D: Apply formula registry weights to compute Scarsian Index™.
 // Currently: stub.

@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Run Intelligence Engines
 // Phase D: Run all 8 intelligence engines against signals.
 // Currently: stub.

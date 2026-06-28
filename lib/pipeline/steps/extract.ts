@@ -1,3 +1,5 @@
+import 'server-only'
+
 // Step: Extract
 // Phase D: Use AI to extract structured facts from raw source text.
 // Creates immutable evidence_records.
