@@ -31,19 +31,25 @@ export default function PipelineFailuresPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   )
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('pipeline_runs')
-      .select('id,entity_slug,entity_name,entity_type,error_message,started_at,completed_at,step_log,event_count,signal_count,requested_by')
-      .eq('status', 'failed')
-      .order('started_at', { ascending: false })
-      .limit(100)
-    setRuns((data ?? []) as FailedRun[])
-    setLoading(false)
-  }, [supabase])
+  const [refreshKey, setRefreshKey] = useState(0)
+  const load = useCallback(() => setRefreshKey(k => k + 1), [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      setLoading(true)
+      const { data } = await supabase
+        .from('pipeline_runs')
+        .select('id,entity_slug,entity_name,entity_type,error_message,started_at,completed_at,step_log,event_count,signal_count,requested_by')
+        .eq('status', 'failed')
+        .order('started_at', { ascending: false })
+        .limit(100)
+      if (!active) return
+      setRuns((data ?? []) as FailedRun[])
+      setLoading(false)
+    })()
+    return () => { active = false }
+  }, [supabase, refreshKey])
 
   const retry = async (run: FailedRun) => {
     setRetrying(run.id)

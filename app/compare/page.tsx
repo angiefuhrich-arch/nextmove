@@ -34,9 +34,11 @@ export default function ComparePage() {
   const [showSearch, setShowSearch] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const displayResults = searchQuery.length < 2 ? [] : searchResults
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (searchQuery.length < 2) { setSearchResults([]); return }
+    if (searchQuery.length < 2) return
     debounceRef.current = setTimeout(async () => {
       setIsSearching(true)
       try {
@@ -130,9 +132,9 @@ export default function ComparePage() {
                 </button>
               )}
 
-              {searchResults.length > 0 && (
+              {displayResults.length > 0 && (
                 <div className="absolute top-10 left-0 z-20 w-64 bg-white border border-divider rounded-xl shadow-elevated overflow-hidden">
-                  {searchResults.slice(0, 6).map(r => (
+                  {displayResults.slice(0, 6).map(r => (
                     <button
                       key={r.slug}
                       onClick={() => addCompany(r)}

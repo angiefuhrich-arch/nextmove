@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 
 interface PersonalizationProfile {
   role: string
@@ -25,14 +25,13 @@ const DEFAULT_PROFILE: PersonalizationProfile = {
 const PersonalizationContext = createContext<PersonalizationState | undefined>(undefined)
 
 export function PersonalizationProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<PersonalizationProfile>(DEFAULT_PROFILE)
-
-  useEffect(() => {
+  const [profile, setProfile] = useState<PersonalizationProfile>(() => {
+    if (typeof window === 'undefined') return DEFAULT_PROFILE
     try {
       const stored = localStorage.getItem('scarsian_profile')
-      if (stored) setProfile(JSON.parse(stored))
-    } catch { /* ignore */ }
-  }, [])
+      return stored ? JSON.parse(stored) : DEFAULT_PROFILE
+    } catch { return DEFAULT_PROFILE }
+  })
 
   const save = (p: PersonalizationProfile) => {
     setProfile(p)

@@ -54,10 +54,16 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [query, searchAPI])
 
-  useEffect(() => { setSelectedIndex(0) }, [query])
+  const wasOpenRef = useRef(false)
   useEffect(() => {
-    if (open && inputRef.current) inputRef.current.focus()
-    if (!open) { setQuery(''); setResults([]) }
+    if (open) {
+      wasOpenRef.current = true
+      inputRef.current?.focus()
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false
+      setQuery('')
+      setResults([])
+    }
   }, [open])
 
   const navigate = useCallback(async (slug: string, name: string) => {
@@ -155,7 +161,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
                 onKeyDown={handleKeyDown}
                 placeholder="Search any employer…"
                 aria-autocomplete="list"

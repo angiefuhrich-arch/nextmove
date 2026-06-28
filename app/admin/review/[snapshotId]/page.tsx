@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect, useCallback } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import {
@@ -103,43 +103,51 @@ export default function ReviewPage({ params }: { params: Promise<{ snapshotId: s
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   )
 
-  const load = useCallback(async () => {
-    const { data: snap } = await supabase
-      .from('scarsian_snapshots')
-      .select('*')
-      .eq('id', snapshotId)
-      .single()
+  const [refreshKey] = useState(0)
 
-    if (!snap) { setLoading(false); return }
-    setSnapshot(snap as SnapshotData)
-    setNote(snap.analyst_note ?? '')
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const { data: snap } = await supabase
+        .from('scarsian_snapshots')
+        .select('*')
+        .eq('id', snapshotId)
+        .single()
 
-    const { data: entityData } = await supabase
-      .from('entities')
-      .select('name, slug, metadata')
-      .eq('id', snap.entity_id)
-      .single()
-    if (entityData) setEntity(entityData as EntityData)
+      if (!active) return
+      if (!snap) { setLoading(false); return }
+      setSnapshot(snap as SnapshotData)
+      setNote(snap.analyst_note ?? '')
 
-    const [{ data: sigs }, { data: evs }] = await Promise.all([
-      supabase.from('intelligence_signals')
-        .select('id,signal_name,category,direction,magnitude,confidence,explanation,created_at')
-        .eq('entity_id', snap.entity_id)
-        .order('created_at', { ascending: false })
-        .limit(50),
-      supabase.from('evidence_records')
-        .select('id,evidence_type,content_summary,source_url,source_title,source_type,evidence_date,collected_at')
-        .eq('entity_id', snap.entity_id)
-        .order('collected_at', { ascending: false })
-        .limit(30),
-    ])
+      const { data: entityData } = await supabase
+        .from('entities')
+        .select('name, slug, metadata')
+        .eq('id', snap.entity_id)
+        .single()
+      if (!active) return
+      if (entityData) setEntity(entityData as EntityData)
 
-    setSignals((sigs ?? []) as SignalItem[])
-    setEvidence((evs ?? []) as EvidenceItem[])
-    setLoading(false)
-  }, [snapshotId])
+      const [{ data: sigs }, { data: evs }] = await Promise.all([
+        supabase.from('intelligence_signals')
+          .select('id,signal_name,category,direction,magnitude,confidence,explanation,created_at')
+          .eq('entity_id', snap.entity_id)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase.from('evidence_records')
+          .select('id,evidence_type,content_summary,source_url,source_title,source_type,evidence_date,collected_at')
+          .eq('entity_id', snap.entity_id)
+          .order('collected_at', { ascending: false })
+          .limit(30),
+      ])
 
-  useEffect(() => { load() }, [load])
+      if (!active) return
+      setSignals((sigs ?? []) as SignalItem[])
+      setEvidence((evs ?? []) as EvidenceItem[])
+      setLoading(false)
+    })()
+    return () => { active = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshotId, refreshKey])
 
   const handleAction = async (action: 'approve' | 'reject') => {
     setActing(true)
