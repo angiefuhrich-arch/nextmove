@@ -1,24 +1,66 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase, Check, CreditCard, CheckCircle, XCircle,
   ChevronRight, ChevronLeft, Clock, FileText,
   Bookmark, Sparkles, Shield, AlertTriangle,
-  Lock, Unlock, History,
+  Lock, Unlock, History, Loader2,
 } from 'lucide-react'
 import { Footer } from '@/components/scarsian/Footer'
-import { creditPackages, transactions } from '@/lib/data/mockData'
+import { createBrowserClient } from '@supabase/ssr'
+
+const creditPackages = [
+  { id: 'starter', name: 'Starter', credits: 3, price: 29, perCredit: '$9.67 per credit',
+    features: ['3 full Intelligence Briefs', 'Credits never expire', 'All 5 dimensions'], popular: false, save: null, badge: null },
+  { id: 'professional', name: 'Professional', credits: 10, price: 79, perCredit: '$7.90 per credit',
+    features: ['10 full Intelligence Briefs', 'Credits never expire', 'All 5 dimensions', 'Priority delivery'], popular: true, save: 'Save 18%', badge: 'Most Popular' },
+  { id: 'enterprise', name: 'Enterprise', credits: 30, price: 199, perCredit: '$6.63 per credit',
+    features: ['30 full Intelligence Briefs', 'Credits never expire', 'All 5 dimensions', 'Priority delivery', 'Bulk discount'], popular: false, save: 'Save 31%', badge: 'Best Value' },
+]
+
+interface CreditTransaction {
+  id: string
+  transaction_type: string
+  amount: number
+  reason: string
+  balance_after: number
+  created_at: string
+}
 
 type WalletView = 'overview' | 'payment' | 'processing' | 'success' | 'failed' | 'history'
 
 export default function WalletPage() {
-  const [credits, setCredits] = useState(3)
+  const searchParams = useSearchParams()
+  const [credits, setCredits] = useState<number | null>(null)
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
-  const [view, setView] = useState<WalletView>('overview')
+  const [view, setView] = useState<WalletView>(searchParams.get('purchase') === 'success' ? 'success' : 'overview')
   const [txPage, setTxPage] = useState(0)
   const [failedReason, setFailedReason] = useState('')
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      const [{ data: profile }, { data: txData }] = await Promise.all([
+        supabase.from('profiles').select('credits').eq('id', user.id).single(),
+        supabase.from('credit_transactions').select('id,transaction_type,amount,reason,balance_after,created_at')
+          .eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+      ])
+      setCredits(profile?.credits ?? 0)
+      setTransactions(txData ?? [])
+      setLoading(false)
+    }
+    fetchData()
+  }, [])
 
   const txPerPage = 5
   const totalPages = Math.ceil(transactions.length / txPerPage)
@@ -30,18 +72,39 @@ export default function WalletPage() {
     setView('payment')
   }
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setView('processing')
-    setTimeout(() => {
-      const pkgData = creditPackages.find(p => p.id === selectedPackage)
-      if (pkgData) {
-        setCredits(c => c + pkgData.credits)
-        setView('success')
+    try {
+      const res = await fetch('/api/credits/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId: selectedPackage }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setFailedReason(data.error ?? 'Payment could not be initiated.')
+        setView('failed')
       }
-    }, 1500)
+    } catch {
+      setFailedReason('Network error. Please try again.')
+      setView('failed')
+    }
   }
 
   const reset = () => { setView('overview'); setSelectedPackage(null) }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface pt-14 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-brand animate-spin" />
+      </div>
+    )
+  }
+
+  const usedCredits = transactions.filter(tx => tx.transaction_type === 'debit' || tx.transaction_type === 'unlock').length
+  const purchasedCredits = transactions.filter(tx => tx.transaction_type === 'purchase').reduce((sum, tx) => sum + tx.amount, 0)
 
   return (
     <div className="min-h-screen bg-surface pt-14">
@@ -60,10 +123,10 @@ export default function WalletPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
           {[
-            { icon: Sparkles, label: 'Credits', value: credits.toString(), sub: 'available' },
-            { icon: Clock, label: 'Career Pass', value: '58', sub: 'days' },
-            { icon: FileText, label: 'Unlocked Briefs', value: '12', sub: 'this period' },
-            { icon: Bookmark, label: 'Saved', value: '8', sub: 'on watchlist' },
+            { icon: Sparkles, label: 'Credits', value: (credits ?? 0).toString(), sub: 'available' },
+            { icon: FileText, label: 'Briefs Unlocked', value: usedCredits.toString(), sub: 'all time' },
+            { icon: Clock, label: 'Credits Purchased', value: purchasedCredits.toString(), sub: 'all time' },
+            { icon: Bookmark, label: 'Transactions', value: transactions.length.toString(), sub: 'total' },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
               className="bg-white border border-divider rounded-2xl p-4 shadow-card">
@@ -163,25 +226,35 @@ export default function WalletPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.map(tx => (
-                    <tr key={tx.id} className="border-b border-divider last:border-b-0 hover:bg-surface-subdued/50">
-                      <td className="py-3 px-3 text-xs text-ink-secondary whitespace-nowrap">{tx.date}</td>
-                      <td className="py-3 px-3">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          tx.type === 'purchase' ? 'bg-emerald-50 text-emerald-600' : 'bg-surface-subdued text-ink-tertiary'
-                        }`}>{tx.type}</span>
-                      </td>
-                      <td className="py-3 px-3 text-xs text-ink-secondary">{tx.description}</td>
-                      <td className={`py-3 px-3 text-xs font-bold text-right whitespace-nowrap ${tx.amount > 0 ? 'text-emerald-600' : 'text-ink-tertiary'}`}>
-                        {tx.amount > 0 ? '+' : ''}{tx.amount}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="flex items-center gap-1 text-[10px] text-emerald-600 whitespace-nowrap">
-                          <Check className="w-2.5 h-2.5" />Complete
-                        </span>
-                      </td>
+                  {paginated.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-ink-tertiary text-sm">No transactions yet</td>
                     </tr>
-                  ))}
+                  ) : paginated.map(tx => {
+                    const isPurchase = tx.transaction_type === 'purchase'
+                    const displayAmount = isPurchase ? `+${tx.amount}` : `${tx.amount}`
+                    return (
+                      <tr key={tx.id} className="border-b border-divider last:border-b-0 hover:bg-surface-subdued/50">
+                        <td className="py-3 px-3 text-xs text-ink-secondary whitespace-nowrap">
+                          {new Date(tx.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            isPurchase ? 'bg-emerald-50 text-emerald-600' : 'bg-surface-subdued text-ink-tertiary'
+                          }`}>{tx.transaction_type}</span>
+                        </td>
+                        <td className="py-3 px-3 text-xs text-ink-secondary">{tx.reason}</td>
+                        <td className={`py-3 px-3 text-xs font-bold text-right whitespace-nowrap ${isPurchase ? 'text-emerald-600' : 'text-ink-tertiary'}`}>
+                          {displayAmount}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="flex items-center gap-1 text-[10px] text-emerald-600 whitespace-nowrap">
+                            <Check className="w-2.5 h-2.5" />Complete
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -270,7 +343,7 @@ export default function WalletPage() {
                       <CheckCircle className="w-12 h-12 text-emerald-500" />
                     </motion.div>
                     <h3 className="text-lg font-bold text-ink">Purchase complete!</h3>
-                    <p className="text-sm text-ink-tertiary">{pkg?.credits} credits added to your Career Wallet</p>
+                    <p className="text-sm text-ink-tertiary">Credits have been added to your Career Wallet</p>
                     <div className="flex items-center gap-1.5 text-[11px] text-ink-quaternary mt-1">
                       <Unlock className="w-3 h-3" />
                       <span>You can now unlock any Intelligence Brief</span>

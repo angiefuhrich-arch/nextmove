@@ -1,16 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Bell, Trash2, ChevronRight, Settings, TrendingUp,
-  Zap, Mail, Megaphone, X,
+  Bell, Trash2, ChevronRight, Settings, Megaphone, X, Mail, Loader2,
 } from 'lucide-react'
-import { companies } from '@/lib/data/mockData'
-import { VerdictBadge } from '@/components/scarsian/VerdictBadge'
-import { TrendArrow } from '@/components/scarsian/TrendArrow'
 import { Footer } from '@/components/scarsian/Footer'
+import { createBrowserClient } from '@supabase/ssr'
+
+interface SavedCompany {
+  id: string
+  company_slug: string
+  company_name: string
+  created_at: string
+}
 
 type AlertType = 'score-change' | 'new-signals' | 'weekly-digest'
 
@@ -21,24 +25,62 @@ interface AlertSetting {
   enabled: boolean
 }
 
-const INITIAL_LIST = ['stripe', 'netflix', 'airbnb', 'meta'].filter(id => companies.find(c => c.id === id))
-
 export default function WatchlistPage() {
   const router = useRouter()
+  const [list, setList] = useState<SavedCompany[]>([])
+  const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [alertSettings, setAlertSettings] = useState<AlertSetting[]>([
-    { type: 'score-change', label: 'Score Changes', desc: 'When an employer\'s Scarsian Index changes by more than 3 points', enabled: true },
+    { type: 'score-change', label: 'Score Changes', desc: "When an employer's Scarsian Index changes by more than 3 points", enabled: true },
     { type: 'new-signals', label: 'New Signals', desc: 'When new verified findings are added to any employer', enabled: true },
     { type: 'weekly-digest', label: 'Weekly Digest', desc: 'Every Monday: biggest movers, new signals, score changes', enabled: false },
   ])
   const [emailFreq, setEmailFreq] = useState<'realtime' | 'daily' | 'weekly'>('daily')
-  const [list, setList] = useState(companies.filter(c => INITIAL_LIST.includes(c.id)))
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+
+    const fetchList = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login?next=/watchlist')
+        return
+      }
+      const { data } = await supabase
+        .from('saved_companies')
+        .select('id, company_slug, company_name, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      setList(data ?? [])
+      setLoading(false)
+    }
+
+    fetchList()
+  }, [router])
+
+  const removeItem = async (id: string, slug: string) => {
+    setList(prev => prev.filter(c => c.id !== id))
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+    await supabase.from('saved_companies').delete().eq('id', id)
+  }
 
   const toggleAlert = (type: AlertType) => {
     setAlertSettings(prev => prev.map(a => a.type === type ? { ...a, enabled: !a.enabled } : a))
   }
 
-  const removeItem = (id: string) => setList(prev => prev.filter(c => c.id !== id))
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface pt-14 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-brand animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-surface pt-14">
@@ -119,33 +161,6 @@ export default function WatchlistPage() {
           )}
         </AnimatePresence>
 
-        {/* Biggest Movers */}
-        {list.filter(c => c.trend.direction === 'up').length > 0 && (
-          <div className="mb-6 bg-white border border-divider rounded-2xl p-4 shadow-card">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Biggest Movers This Week</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {list.filter(c => c.trend.direction === 'up').slice(0, 2).map(c => (
-                <button key={c.id} onClick={() => router.push(`/brief/${c.id}`)}
-                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-surface-subdued/50 transition-colors text-left">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-6 h-6 rounded-full bg-surface-subdued flex items-center justify-center text-[9px] font-bold text-ink-secondary">
-                      {c.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <span className="text-sm text-ink-secondary">{c.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="w-3 h-3 text-emerald-500" />
-                    <span className="text-xs font-semibold text-emerald-600">{c.trend.value}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Watchlist grid */}
         {list.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-24 text-center">
@@ -164,68 +179,39 @@ export default function WatchlistPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {list.map((c, i) => (
-              <motion.div key={c.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="bg-white border border-divider rounded-2xl p-5 flex flex-col gap-3 shadow-card hover:shadow-elevated transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-surface-subdued border border-divider flex items-center justify-center text-xs font-bold text-ink-secondary">
-                      {c.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-ink">{c.name}</div>
-                      <div className="text-[11px] text-ink-tertiary">{c.industry}</div>
-                    </div>
+          <div className="flex flex-col gap-3">
+            {list.map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-white border border-divider rounded-2xl p-5 flex items-center gap-4 shadow-card hover:shadow-elevated transition-shadow"
+              >
+                <div className="w-10 h-10 rounded-full bg-surface-subdued border border-divider flex items-center justify-center text-xs font-bold text-ink-secondary flex-shrink-0">
+                  {item.company_name.substring(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-ink">{item.company_name}</div>
+                  <div className="text-[11px] text-ink-quaternary">
+                    Added {new Date(item.created_at).toLocaleDateString()}
                   </div>
-                  <button onClick={() => removeItem(c.id)}
-                    className="p-1.5 rounded-lg hover:bg-red-50 transition-colors group">
-                    <Trash2 className="w-3.5 h-3.5 text-ink-quaternary group-hover:text-red-500" />
-                  </button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] text-ink-tertiary uppercase tracking-wider">Scarsian Index™</div>
-                    <div className="text-2xl font-bold text-ink">{c.indexScore}</div>
-                  </div>
-                  <VerdictBadge verdict={c.verdict} size="sm" />
-                </div>
-                <TrendArrow trend={c.trend} />
-                <div className="flex items-center gap-1.5 text-xs text-brand">
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>{c.signals.length} new signals</span>
-                </div>
-                <button onClick={() => router.push(`/brief/${c.id}`)}
-                  className="text-xs font-semibold text-brand hover:underline flex items-center gap-0.5 pt-1">
-                  View Brief <ChevronRight className="w-3 h-3" />
+                <button
+                  onClick={() => router.push(`/brief/${item.company_slug}`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-brand border border-brand/20 hover:bg-brand-light transition-colors"
+                >
+                  View Brief
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => removeItem(item.id, item.company_slug)}
+                  className="p-2 rounded-lg text-ink-quaternary hover:text-status-danger hover:bg-status-danger-bg transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </motion.div>
             ))}
-          </div>
-        )}
-
-        {/* Recent Signals */}
-        {list.length > 0 && (
-          <div className="mt-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Megaphone className="w-3.5 h-3.5 text-brand" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-brand">Recent Signals</span>
-            </div>
-            <div className="bg-white border border-divider rounded-2xl overflow-hidden shadow-card">
-              {list.flatMap(c => c.signals.slice(0, 1)).slice(0, 4).map((s, i, arr) => (
-                <div key={`${s.id}-${i}`} className={`px-4 py-3 flex items-start gap-2.5 ${i < arr.length - 1 ? 'border-b border-divider' : ''} hover:bg-surface-subdued/30 transition-colors`}>
-                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${s.sentiment === 'positive' ? 'bg-emerald-400' : s.sentiment === 'negative' ? 'bg-red-400' : 'bg-amber-400'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-ink-secondary leading-snug">{s.text}</p>
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-ink-quaternary">
-                      <span>{s.category}</span>
-                      <span>·</span>
-                      <span>{s.date}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>

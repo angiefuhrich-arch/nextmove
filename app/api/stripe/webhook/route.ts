@@ -26,9 +26,43 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const userId = session.metadata?.userId
+        const userId = session.metadata?.user_id
+        const credits = session.metadata?.credits ? parseInt(session.metadata.credits, 10) : 0
         const plan = session.metadata?.plan
-        if (userId && plan) {
+
+        // One-time credit purchase
+        if (userId && credits > 0) {
+          const idempotencyKey = `stripe_checkout_${session.id}`
+          // Check idempotency
+          const { data: existing } = await supabase
+            .from('credit_transactions')
+            .select('id')
+            .eq('idempotency_key', idempotencyKey)
+            .maybeSingle()
+          if (!existing) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('credits')
+              .eq('id', userId)
+              .single()
+            const currentCredits = (profile?.credits ?? 0) as number
+            const newBalance = currentCredits + credits
+            await Promise.all([
+              supabase.from('profiles').update({ credits: newBalance }).eq('id', userId),
+              supabase.from('credit_transactions').insert({
+                user_id: userId,
+                transaction_type: 'purchase',
+                amount: credits,
+                reason: `Stripe checkout ${session.id}`,
+                idempotency_key: idempotencyKey,
+                balance_after: newBalance,
+              }),
+            ])
+          }
+        }
+
+        // Subscription purchase
+        if (userId && plan && session.subscription) {
           await supabase.from('subscriptions').upsert({
             user_id: userId,
             stripe_customer_id: session.customer as string,

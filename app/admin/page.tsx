@@ -1,132 +1,167 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { DashboardLayout } from '@/components/layout/dashboard-layout'
+import { AdminLayout } from '@/components/layout/admin-layout'
 import Link from 'next/link'
-import { Plus, CheckCircle2, Clock, XCircle, ChevronRight } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, ChevronRight, Activity, Database, FileSearch } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect('/login?next=/admin')
 
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-  if (!profile?.is_admin) redirect('/dashboard')
+  if (!profile?.is_admin) redirect('/')
 
   const admin = createAdminClient()
 
-  // Get all snapshots with company info
-  const { data: snapshots } = await admin
-    .from('company_score_snapshots')
-    .select(`
-      id, status, scarsian_score, confidence_score, verdict, created_at, approved_at,
-      company_id,
-      companies(name, slug, industry)
-    `)
-    .order('created_at', { ascending: false })
-    .limit(100)
-
-  const statusIcon = (status: string) => {
-    if (status === 'approved') return <CheckCircle2 size={14} className="text-green-500" />
-    if (status === 'rejected') return <XCircle size={14} className="text-red-400" />
-    return <Clock size={14} className="text-amber-400" />
-  }
-
-  const statusColor = (status: string) => {
-    if (status === 'approved') return 'bg-green-50 text-green-700 border border-green-200'
-    if (status === 'rejected') return 'bg-red-50 text-red-700 border border-red-200'
-    return 'bg-amber-50 text-amber-700 border border-amber-200'
-  }
-
-  const verdictColor = (verdict: string) => {
-    if (verdict === 'strong') return 'text-green-600'
-    if (verdict === 'no-go') return 'text-red-500'
-    return 'text-amber-500'
-  }
+  const [
+    { data: snapshots },
+    { count: entityCount },
+    { count: evidenceCount },
+    { data: recentRuns },
+  ] = await Promise.all([
+    admin
+      .from('scarsian_snapshots')
+      .select('id, status, scarsian_index, confidence, verdict, created_at, approved_at, entity_id, entities(name, slug, metadata)')
+      .order('created_at', { ascending: false })
+      .limit(50),
+    admin.from('entities').select('*', { count: 'exact', head: true }),
+    admin.from('evidence_records').select('*', { count: 'exact', head: true }),
+    admin.from('pipeline_runs').select('id,entity_name,status,started_at').order('started_at', { ascending: false }).limit(5),
+  ])
 
   const drafts = snapshots?.filter(s => s.status === 'draft').length ?? 0
   const approved = snapshots?.filter(s => s.status === 'approved').length ?? 0
+  const rejected = snapshots?.filter(s => s.status === 'rejected').length ?? 0
+
+  const statusIcon = (status: string) => {
+    if (status === 'approved') return <CheckCircle2 size={14} className="text-status-success" />
+    if (status === 'rejected') return <XCircle size={14} className="text-status-danger" />
+    return <Clock size={14} className="text-status-warning" />
+  }
+
+  const statusCls = (status: string) => {
+    if (status === 'approved') return 'bg-status-success-bg text-status-success'
+    if (status === 'rejected') return 'bg-status-danger-bg text-status-danger'
+    return 'bg-status-warning-bg text-status-warning'
+  }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Admin Pipeline</h1>
-            <p className="text-slate-500 text-sm mt-1">Analyze, review, and approve company reports</p>
-          </div>
-          <Link
-            href="/admin/analyze"
-            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors"
-          >
-            <Plus size={16} />
-            Analyze Company
-          </Link>
+    <AdminLayout activePath="/admin">
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-title-xl text-ink font-bold">Admin Overview</h1>
+          <p className="text-body-sm text-ink-secondary mt-1">Intelligence Center operations dashboard</p>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: 'Total Reports', value: snapshots?.length ?? 0, color: 'text-slate-900' },
-            { label: 'Pending Review', value: drafts, color: 'text-amber-600' },
-            { label: 'Published', value: approved, color: 'text-green-600' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="bg-white border border-slate-200 rounded-xl p-4">
-              <p className="text-xs text-slate-500 mb-1">{label}</p>
-              <p className={`text-2xl font-bold ${color}`}>{value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Snapshots table */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h2 className="text-sm font-semibold text-slate-900">Company Reports</h2>
-          </div>
-          {!snapshots || snapshots.length === 0 ? (
-            <div className="p-12 text-center text-slate-400">
-              <p className="text-sm">No reports yet. Click &quot;Analyze Company&quot; to start.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {snapshots.map((snapshot) => {
-                const company = (Array.isArray(snapshot.companies) ? snapshot.companies[0] : snapshot.companies) as { name: string; slug: string; industry: string } | null
-                return (
-                  <Link
-                    key={snapshot.id}
-                    href={`/admin/review/${snapshot.id}`}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors group"
-                  >
-                    <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
-                      {company?.name?.charAt(0) ?? '?'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-900 text-sm">{company?.name ?? 'Unknown'}</p>
-                      <p className="text-xs text-slate-400">{company?.industry ?? ''}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`text-sm font-bold ${verdictColor(snapshot.verdict)}`}>
-                        {snapshot.scarsian_score}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {snapshot.confidence_score}% conf
-                      </span>
-                      <span className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${statusColor(snapshot.status)}`}>
-                        {statusIcon(snapshot.status)}
-                        {snapshot.status}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {new Date(snapshot.created_at).toLocaleDateString()}
-                      </span>
-                      <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-500" />
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        <Link
+          href="/admin/runs"
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-brand text-white text-button font-semibold hover:bg-brand-hover transition-colors duration-fast"
+        >
+          <Activity size={15} />
+          Pipeline Monitor
+        </Link>
       </div>
-    </DashboardLayout>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Entities', value: entityCount ?? 0, icon: Database, color: 'text-ink' },
+          { label: 'Pending Review', value: drafts, icon: Clock, color: 'text-status-warning' },
+          { label: 'Published Briefs', value: approved, icon: CheckCircle2, color: 'text-status-success' },
+          { label: 'Evidence Records', value: evidenceCount ?? 0, icon: FileSearch, color: 'text-brand' },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="bg-surface-elevated border border-divider rounded-xl p-4 shadow-card">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon size={14} className={color} />
+              <p className="text-caption text-ink-tertiary">{label}</p>
+            </div>
+            <p className={cn('text-title-lg font-bold', color)}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent pipeline runs */}
+      {recentRuns && recentRuns.length > 0 && (
+        <div className="bg-surface-elevated border border-divider rounded-xl overflow-hidden shadow-card mb-8">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-divider">
+            <h2 className="text-body-sm font-semibold text-ink">Recent Pipeline Runs</h2>
+            <Link href="/admin/runs" className="text-caption text-brand hover:underline">View all →</Link>
+          </div>
+          <div className="divide-y divide-divider">
+            {recentRuns.map(run => (
+              <div key={run.id} className="flex items-center gap-3 px-5 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-body-sm text-ink font-medium truncate">{run.entity_name}</p>
+                  <p className="text-caption text-ink-quaternary">{new Date(run.started_at).toLocaleString()}</p>
+                </div>
+                <span className={cn('text-caption font-medium px-2 py-0.5 rounded-full', statusCls(run.status))}>
+                  {run.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Snapshots pending review */}
+      <div className="bg-surface-elevated border border-divider rounded-xl overflow-hidden shadow-card">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-divider">
+          <h2 className="text-body-sm font-semibold text-ink">Intelligence Briefs</h2>
+          <div className="flex items-center gap-3 text-caption text-ink-tertiary">
+            <span>{drafts} pending</span>
+            <span>·</span>
+            <span>{approved} approved</span>
+            <span>·</span>
+            <span>{rejected} rejected</span>
+          </div>
+        </div>
+        {!snapshots || snapshots.length === 0 ? (
+          <div className="p-12 text-center text-ink-tertiary">
+            <p className="text-body-sm">No Intelligence Briefs yet. Run the pipeline to generate them.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-divider">
+            {snapshots.map((snapshot) => {
+              const entity = Array.isArray(snapshot.entities) ? snapshot.entities[0] : snapshot.entities as { name: string; slug: string; metadata?: { industry?: string } } | null
+              return (
+                <Link
+                  key={snapshot.id}
+                  href={`/admin/review/${snapshot.id}`}
+                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-subdued transition-colors duration-fast group"
+                >
+                  <div className="w-8 h-8 bg-surface-subdued border border-divider rounded-lg flex items-center justify-center text-ink-secondary font-bold text-label shrink-0">
+                    {entity?.name?.charAt(0) ?? '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-sm font-semibold text-ink truncate">{entity?.name ?? 'Unknown'}</p>
+                    <p className="text-caption text-ink-quaternary">{entity?.metadata?.industry ?? ''}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    {snapshot.scarsian_index != null && (
+                      <span className="text-body-sm font-bold text-ink tabular-nums">{snapshot.scarsian_index}</span>
+                    )}
+                    {snapshot.confidence != null && (
+                      <span className="text-caption text-ink-tertiary">{snapshot.confidence}% conf</span>
+                    )}
+                    <span className={cn('flex items-center gap-1 text-caption font-medium px-2 py-0.5 rounded-full', statusCls(snapshot.status))}>
+                      {statusIcon(snapshot.status)}
+                      {snapshot.status}
+                    </span>
+                    <span className="text-caption text-ink-quaternary">
+                      {new Date(snapshot.created_at).toLocaleDateString()}
+                    </span>
+                    <ChevronRight size={14} className="text-ink-quaternary group-hover:text-brand transition-colors duration-fast" />
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </AdminLayout>
   )
 }

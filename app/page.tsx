@@ -1,19 +1,15 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
-  Search, BarChart3, Shield, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  Search, BarChart3, Shield, ChevronDown, ChevronUp,
   FileText, Landmark, Globe, Newspaper, Users, Star, Check,
   HelpCircle, Building2, Sparkles, Zap, GitCompare, Bookmark, Award, Target,
 } from 'lucide-react'
 import { Constellation } from '@/components/scarsian/Constellation'
-import { VerdictBadge } from '@/components/scarsian/VerdictBadge'
-import { TrendArrow } from '@/components/scarsian/TrendArrow'
 import { Footer } from '@/components/scarsian/Footer'
-import { featuredCompanies } from '@/lib/data/mockData'
-
 const trustSources = [
   { icon: FileText, label: 'SEC Filings' },
   { icon: FileText, label: 'Annual Reports' },
@@ -55,12 +51,7 @@ const features = [
 
 export default function HomePage() {
   const router = useRouter()
-  const carouselRef = useRef<HTMLDivElement>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-
-  const scrollCarousel = (dir: 'left' | 'right') => {
-    carouselRef.current?.scrollBy({ left: dir === 'left' ? -340 : 340, behavior: 'smooth' })
-  }
 
   const openSearch = () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))
@@ -188,66 +179,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURED INTELLIGENCE ===== */}
+      {/* ===== INTELLIGENCE PREVIEW ===== */}
       <section className="py-24 md:py-28 px-6 bg-surface">
-        <div className="max-w-[1000px] mx-auto">
+        <div className="max-w-[720px] mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mb-10"
+            className="mb-8"
           >
-            <h2 className="text-3xl md:text-[44px] font-bold text-ink tracking-[-1px] mb-2">Featured Intelligence</h2>
-            <p className="text-sm text-ink-tertiary">Recently analyzed employers</p>
+            <h2 className="text-3xl md:text-[44px] font-bold text-ink tracking-[-1px] mb-3">Search any employer</h2>
+            <p className="text-sm text-ink-secondary leading-relaxed max-w-[480px] mx-auto">
+              Type any company name to get a live Intelligence Brief built from public records, filings, and verified sources.
+            </p>
           </motion.div>
-
-          <div className="relative">
-            <button
-              onClick={() => scrollCarousel('left')}
-              className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-divider shadow-card flex items-center justify-center hover:bg-surface-subdued transition-colors hidden md:flex"
-            >
-              <ChevronLeft className="w-4 h-4 text-ink-secondary" />
-            </button>
-            <button
-              onClick={() => scrollCarousel('right')}
-              className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-divider shadow-card flex items-center justify-center hover:bg-surface-subdued transition-colors hidden md:flex"
-            >
-              <ChevronRight className="w-4 h-4 text-ink-secondary" />
-            </button>
-
-            <div
-              ref={carouselRef}
-              className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory"
-              style={{ scrollbarWidth: 'none' }}
-            >
-              {featuredCompanies.map((company, i) => (
-                <motion.button
-                  key={company.id}
-                  initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }} transition={{ delay: i * 0.07 }}
-                  onClick={() => router.push(`/report/${company.id}`)}
-                  className="flex-shrink-0 w-[280px] snap-start bg-white border border-divider rounded-2xl p-6 text-left hover:border-brand/30 hover:shadow-elevated transition-all duration-300 shadow-card"
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-full bg-surface-subdued border border-divider flex items-center justify-center text-xs font-bold text-ink-secondary">
-                      {company.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-ink">{company.name}</div>
-                      <div className="text-[11px] text-ink-tertiary">{company.industry}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="text-[10px] text-ink-tertiary uppercase tracking-wider">Scarsian Index™</div>
-                      <div className="text-2xl font-bold text-ink tabular-nums">{company.indexScore}</div>
-                    </div>
-                    <VerdictBadge verdict={company.verdict} size="sm" />
-                  </div>
-                  <TrendArrow trend={company.trend} showLabel={false} />
-                  <div className="mt-4 text-xs font-semibold text-brand">View Brief →</div>
-                </motion.button>
-              ))}
+          <motion.button
+            initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+            onClick={openSearch}
+            className="w-full max-w-[560px] flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border border-divider shadow-card hover:border-brand/30 hover:shadow-elevated transition-all duration-300 text-ink-tertiary hover:text-ink-secondary"
+          >
+            <Search className="w-5 h-5" />
+            <span className="text-base">Search any employer...</span>
+            <div className="ml-auto flex items-center gap-1 text-[11px] text-ink-quaternary border border-divider rounded px-2 py-0.5">
+              <span>⌘K</span>
             </div>
-          </div>
+          </motion.button>
         </div>
       </section>
 

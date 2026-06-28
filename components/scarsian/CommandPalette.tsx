@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, Loader2 } from 'lucide-react'
-import { companies } from '@/lib/data/mockData'
 
 interface SearchResult {
   id: string
@@ -29,15 +28,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
-  // Local mock fallback for instant results while API call is in-flight
-  const localMatches = companies
-    .filter(c =>
-      c.name.toLowerCase().includes(query.toLowerCase()) ||
-      c.industry.toLowerCase().includes(query.toLowerCase())
-    )
-    .map(c => ({ id: c.id, slug: c.id, name: c.name, industry: c.industry, indexScore: c.indexScore }))
-
-  const displayResults = results.length > 0 ? results : (query.length >= 2 ? localMatches : [])
+  const displayResults = results.length > 0 ? results : []
 
   const searchAPI = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return }
@@ -49,7 +40,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       if (data.hit && data.results) {
         setResults(data.results.map((r: { id: string; slug: string; name: string; industry?: string }) => ({
           ...r,
-          indexScore: companies.find(c => c.id === r.slug)?.indexScore,
         })))
       } else {
         setResults([])
@@ -72,13 +62,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   const navigate = useCallback(async (slug: string, name: string) => {
     onClose()
-    // Check if it's a cached entity (mock data)
-    const isCached = companies.some(c => c.id === slug)
-    if (isCached) {
-      router.push(`/brief/${slug}`)
-      return
-    }
-    // No cache → start pipeline
     setIsLaunching(true)
     try {
       const res = await fetch('/api/pipeline/start', {
@@ -87,7 +70,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         body: JSON.stringify({ entitySlug: slug, entityName: name }),
       })
       const data = await res.json()
-      router.push(`/building/${slug}?runId=${data.runId}`)
+      if (data.briefReady) {
+        router.push(`/brief/${slug}`)
+      } else {
+        router.push(`/building/${slug}?runId=${data.runId}`)
+      }
     } catch {
       router.push(`/building/${slug}`)
     }
