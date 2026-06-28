@@ -61,10 +61,10 @@ Return ONLY valid JSON matching this schema:
 }
 
 Rules:
-- Only extract facts about the specific employer entity under analysis.
-- Do not include facts about competitors unless directly comparing to the employer.
+- Only extract facts about the specific entity under analysis (entity type will be provided in the user message).
+- Do not include facts about competitors unless directly comparing to the entity.
 - Do not fabricate. If the text is vague, set confidence below 0.5.
-- If text contains no useful employer signal, return insufficientSignal: true with empty facts array.
+- If text contains no useful signal, return insufficientSignal: true with empty facts array.
 - Maximum 8 facts per evidence record. Choose the highest-confidence ones.
 - directQuote must be under 150 characters and appear verbatim in the text.`
 
@@ -72,6 +72,7 @@ async function extractFactsFromEvidence(
   openai: OpenAI,
   entityName: string,
   records: Array<{ id: string; rawText: string; sourceUrl: string | null; sourceTier: number; evidenceType: string; collectedAt: string }>,
+  entityType?: string,
 ): Promise<Map<string, ExtractedFacts>> {
   const wrapped = wrapEvidenceForPrompt(records.map(r => ({
     id: r.id,
@@ -83,6 +84,7 @@ async function extractFactsFromEvidence(
   })))
 
   const userPrompt = `Entity under analysis: "${entityName}"
+Entity type: ${entityType ?? 'company'}
 
 ${wrapped}
 
@@ -90,8 +92,9 @@ Extract structured facts for each evidence record above.
 Return a JSON object where each key is the evidence id and the value matches the ExtractedFacts schema.
 Example: { "uuid-1": { "facts": [...], "insufficientSignal": false }, "uuid-2": { ... } }`
 
+  const AI_MODEL = 'gpt-4o-mini'
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: AI_MODEL,
     temperature: 0,
     response_format: { type: 'json_object' },
     messages: [
@@ -162,7 +165,7 @@ export async function extractStep(ctx: PipelineContext): Promise<StepResult> {
     let factsMap: Map<string, ExtractedFacts>
 
     try {
-      factsMap = await extractFactsFromEvidence(openai, ctx.entityName, batch)
+      factsMap = await extractFactsFromEvidence(openai, ctx.entityName, batch, ctx.entityType)
     } catch (err) {
       // Batch failed — mark records as extraction-failed but don't abort pipeline
       console.error('[extract] batch failed:', err instanceof Error ? err.message : err)

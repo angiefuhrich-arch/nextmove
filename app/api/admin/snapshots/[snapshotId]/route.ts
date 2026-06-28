@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { calculateScarsianScores, SCORING_SIGNALS, CONFIDENCE_SIGNALS } from '@/lib/scoring'
+import { calculateScarsianScores, toEmployerPillarNames, SCORING_SIGNALS, CONFIDENCE_SIGNALS } from '@/lib/scoring'
 import type { ScoringSignals, ConfidenceInputs } from '@/lib/scoring'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ snapshotId: string }> }) {
@@ -55,15 +55,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sn
         scoringMap as ScoringSignals,
         confidenceMap as ConfidenceInputs
       )
+      const recalcPillars = toEmployerPillarNames(recalculated)
 
       // Update snapshot
       await admin.from('company_score_snapshots').update({
         scarsian_score: recalculated.scarsian_score,
-        career_growth_score: recalculated.career_growth_score,
-        career_risk_score: recalculated.career_risk_score,
-        market_value_score: recalculated.market_value_score,
-        career_fit_score: recalculated.career_fit_score,
-        gfi_score: recalculated.gfi_score,
+        career_growth_score: recalcPillars.career_growth_score,
+        career_risk_score:   recalcPillars.career_risk_score,
+        market_value_score:  recalcPillars.market_value_score,
+        career_fit_score:    recalcPillars.career_fit_score,
+        gfi_score:           recalcPillars.gfi_score,
         career_alpha: recalculated.career_alpha,
         confidence_score: recalculated.confidence_score,
         verdict: recalculated.verdict,
@@ -85,7 +86,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sn
           confidence_score: recalculated.confidence_score,
           verdict: recalculated.verdict,
           analyst_note: snap.analyst_note,
-          gfi_score: recalculated.gfi_score,
+          gfi_score: recalcPillars.gfi_score,
           // Sync individual signal scores
           ladder_speed: scoringMap.promotion_velocity,
           skill_depreciation_risk: scoringMap.skill_transferability != null ? 100 - scoringMap.skill_transferability : undefined,

@@ -1,6 +1,10 @@
 import 'server-only'
 
 // Source Tier Classification
+// Primary source: source_tier_rules table (DB-driven, per entity_type).
+// Fallback: DOMAIN_TIERS hardcoded map (used if DB unavailable or during cold start).
+// Use classifyUrlForEntity(url, entityType) for entity-aware classification.
+// classifyUrl(url) is kept for backward compatibility and uses global rules only.
 // Tier 1: Official / regulator / government / company filing
 // Tier 2: Structured data providers / job APIs / verified aggregators
 // Tier 3: Reputable news / established media
@@ -100,4 +104,59 @@ export function isEvidenceEligible(url: string): boolean {
 
 export function isScrapingAllowed(url: string): boolean {
   return classifyUrl(url).allowScraping
+}
+
+// ── DB-driven classification ────────────────────────────────────────────────────
+// classifyUrlWithRules: uses a pre-loaded rules array (from source_tier_rules table).
+// Call getSourceTierRules(entityType) from dal/scoring-models.ts to get the rules,
+// then pass them here. This avoids a DB call per URL during batch collection.
+
+export interface DbTierRule {
+  domain_pattern:    string
+  entity_type:       string | null
+  tier:              SourceTier
+  reliability_score: number
+  allow_for_evidence: boolean
+  allow_scraping:    boolean
+}
+
+export function classifyUrlWithRules(
+  rawUrl: string,
+  rules: DbTierRule[],
+  entityType?: string
+): TierRule & { hostname: string } {
+  let hostname = ''
+  try {
+    hostname = new URL(rawUrl).hostname.replace(/^www\./, '')
+  } catch {
+    return { ...DEFAULT_TIER, hostname: '' }
+  }
+
+  // Entity-specific rules take priority over global (NULL) rules
+  const entitySpecific = entityType
+    ? rules.filter(r => r.entity_type === entityType)
+    : []
+  const globalRules = rules.filter(r => r.entity_type === null)
+
+  const prioritized = [...entitySpecific, ...globalRules]
+
+  for (const rule of prioritized) {
+    const pattern = rule.domain_pattern
+    if (hostname === pattern || hostname.endsWith('.' + pattern)) {
+      return {
+        tier:             rule.tier as SourceTier,
+        reliabilityScore: rule.reliability_score,
+        allowForEvidence: rule.allow_for_evidence,
+        allowScraping:    rule.allow_scraping,
+        hostname,
+      }
+    }
+  }
+
+  // Heuristic for unmapped .gov/.edu domains
+  if (hostname.endsWith('.gov') || hostname.endsWith('.gov.hk') || hostname.endsWith('.edu')) {
+    return { tier: 1, reliabilityScore: 88, allowForEvidence: true, allowScraping: true, hostname }
+  }
+
+  return { ...DEFAULT_TIER, hostname }
 }

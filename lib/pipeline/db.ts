@@ -94,6 +94,7 @@ export async function createPipelineRun(opts: {
       status: 'queued',
       step_log: [],
       pipeline_version: PIPELINE_VERSION,
+      ai_model_version: 'gpt-4o-mini',
       requested_by: opts.requestedBy ?? null,
       discovery_query: opts.entityName,
     })

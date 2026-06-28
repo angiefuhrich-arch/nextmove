@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { collectCompanyData } from '@/lib/data-collection'
 import { analyzeSignals, generateAnalystNote } from '@/lib/signal-analysis'
-import { calculateScarsianScores, SCORING_SIGNALS, CONFIDENCE_SIGNALS } from '@/lib/scoring'
+import { calculateScarsianScores, toEmployerPillarNames, SCORING_SIGNALS, CONFIDENCE_SIGNALS } from '@/lib/scoring'
 import type { ScoringSignals, ConfidenceInputs } from '@/lib/scoring'
 import { upsertEntity } from '@/lib/dal/entities'
 import { createSignal } from '@/lib/dal/signals'
@@ -144,12 +144,14 @@ export async function POST(req: NextRequest) {
       for (const name of SCORING_SIGNALS) { if (scoringMap[name] === undefined) scoringMap[name] = 50 }
       for (const name of CONFIDENCE_SIGNALS) { if (confidenceMap[name] === undefined) confidenceMap[name] = 20 }
       const legacy = calculateScarsianScores(scoringMap as ScoringSignals, confidenceMap as ConfidenceInputs)
+      const pillars = toEmployerPillarNames(legacy)
       engineResult = {
         ...legacy,
-        cgs_score: legacy.career_growth_score,
-        crs_score: legacy.career_risk_score,
-        mvs_score: legacy.market_value_score,
-        cfs_score: legacy.career_fit_score,
+        cgs_score: pillars.career_growth_score,
+        crs_score: pillars.career_risk_score,
+        mvs_score: pillars.market_value_score,
+        cfs_score: pillars.career_fit_score,
+        gfi_score: pillars.gfi_score,
         formula_version: legacy.formula_version,
         formula_version_id: 'legacy',
         engine_outputs: [],
