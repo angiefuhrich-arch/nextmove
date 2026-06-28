@@ -1,7 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { Sparkles, Check } from 'lucide-react'
 import { PipelineStep } from './PipelineStep'
+import { Constellation } from './Constellation'
 import { PIPELINE_STEPS, type PipelineStatus, type StepLogEntry } from '@/lib/pipeline/runner'
 
 interface PipelineLoaderProps {
@@ -35,76 +37,106 @@ export function PipelineLoader({ entityName, status, stepLog }: PipelineLoaderPr
   const evidenceCollected = getEvidenceCount(stepLog)
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 pt-16 brand-gradient relative overflow-hidden">
+      {/* Constellation background */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <Constellation
+          width={600}
+          height={600}
+          nodeCount={8}
+          opacity={0.06}
+          animated={!isTerminal}
+          variant="radiating"
+          centerX={300}
+          centerY={300}
+        />
+      </div>
+
+      <div className="relative max-w-[480px] w-full z-10">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-10"
+          className="mb-8 text-center"
         >
-          {!isTerminal && (
+          <div className="flex items-center justify-center gap-2 mb-4">
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              className="w-12 h-12 rounded-full border-2 border-brand/20 border-t-brand mx-auto mb-4"
-            />
-          )}
-          {status === 'completed' && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-12 h-12 rounded-full bg-verdict-green/10 border border-verdict-green/30 flex items-center justify-center mx-auto mb-4"
+              animate={{ rotate: isTerminal ? 0 : 360 }}
+              transition={{ duration: 3, repeat: isTerminal ? 0 : Infinity, ease: 'linear' }}
             >
-              <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
-                <path d="M2 9l5.5 5.5L20 2" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <Sparkles className="w-5 h-5 text-brand" />
             </motion.div>
-          )}
-          {status === 'insufficient_evidence' && (
-            <div className="w-12 h-12 rounded-full bg-verdict-amber/10 border border-verdict-amber/30 flex items-center justify-center mx-auto mb-4">
-              <span className="text-verdict-amber text-xl font-bold">!</span>
-            </div>
-          )}
-
-          {!isTerminal && (
-            <p className="text-[10px] font-bold uppercase tracking-[3px] text-brand mb-3">
-              Preparing Your Intelligence Brief™
-            </p>
-          )}
-
-          <h1 className="text-2xl font-bold text-ink mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-[2px] text-brand">
+              {isTerminal ? 'Intelligence Brief Ready' : 'Preparing your Intelligence Brief™'}
+            </span>
+          </div>
+          <h1 className="text-xl font-bold text-ink mb-2">
             {isTerminal
-              ? status === 'completed' ? 'Intelligence ready' : 'Insufficient public evidence'
+              ? status === 'completed' ? entityName : 'Insufficient public evidence'
               : `Researching ${entityName}`}
           </h1>
-          <p className="text-sm text-ink-secondary">
+          <p className="text-sm text-ink-tertiary">
             {isTerminal
               ? status === 'completed'
-                ? `Report for ${entityName} is ready.`
+                ? 'Your Intelligence Brief is ready for review.'
                 : `Not enough public data found for ${entityName}.`
-              : 'This typically takes a few seconds...'}
+              : 'This typically takes a few seconds. Every finding is verified against trusted sources.'}
           </p>
-
-          {/* Stats row */}
-          {!isTerminal && (
-            <div className="mt-4 flex items-center justify-center gap-6 text-sm text-ink-secondary">
-              <span>Sources discovered: <strong className="text-ink">{sourcesDiscovered}</strong></span>
-              <span>Evidence collected: <strong className="text-ink">{evidenceCollected}</strong></span>
-            </div>
-          )}
         </motion.div>
 
+        {/* Stats row */}
+        {!isTerminal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="flex items-center justify-center gap-4 mb-6 text-[10px] text-ink-quaternary">
+            <span>Sources discovered: {sourcesDiscovered}</span>
+            <span>Evidence collected: {evidenceCollected}</span>
+          </motion.div>
+        )}
+
         {/* Steps */}
-        <div className="bg-surface-elevated border border-divider rounded-2xl p-6 space-y-5">
-          {PIPELINE_STEPS.map((step, i) => (
-            <PipelineStep
-              key={step.status}
-              label={step.label}
-              state={getStepState(step.status, status, stepLog)}
-              index={i}
-            />
-          ))}
+        <div className="flex flex-col gap-0 relative">
+          <div className="absolute left-[17px] top-3 bottom-3 w-px bg-divider" />
+          {PIPELINE_STEPS.map((step, i) => {
+            const state = getStepState(step.status, status, stepLog)
+            const isDone = state === 'done'
+            const isActive = state === 'active'
+            return (
+              <motion.div
+                key={step.status}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: state === 'pending' ? 0.3 : 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="flex items-start gap-3.5 py-2.5 relative"
+              >
+                <div className={`w-[34px] h-[34px] rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all duration-500 ${
+                  isDone ? 'bg-brand text-white' :
+                  isActive ? 'bg-brand/10 text-brand border border-brand/30' :
+                  'bg-surface-subdued text-ink-quaternary border border-divider'
+                }`}>
+                  {isDone ? <Check className="w-3.5 h-3.5" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
+                </div>
+                <div className="flex-1 text-left pt-0.5 min-w-0">
+                  <div className={`text-[13px] font-medium transition-colors ${
+                    isDone ? 'text-brand' : isActive ? 'text-ink' : 'text-ink-quaternary'
+                  }`}>
+                    {step.label}
+                  </div>
+                  {isActive && (
+                    <div className="flex gap-1 mt-1.5">
+                      {[0, 1, 2].map(j => (
+                        <motion.div
+                          key={j}
+                          className="w-1.5 h-1.5 rounded-full bg-brand/40"
+                          animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.3, 1] }}
+                          transition={{ duration: 1, repeat: Infinity, delay: j * 0.2 }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
 
         {!isTerminal && (

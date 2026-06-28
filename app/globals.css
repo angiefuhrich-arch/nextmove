@@ -213,6 +213,11 @@
   .score-color-fair      { @apply text-score-amber; }
   .score-color-poor      { @apply text-score-red; }
 
+  /* Brand gradient background (hero and loading pages) */
+  .brand-gradient {
+    background: linear-gradient(135deg, #F6F5F2 0%, #F0F3F5 50%, #E6F3F2 100%);
+  }
+
   /* Nav backdrop */
   .nav-blur {
     background: rgba(255, 255, 255, 0.90);

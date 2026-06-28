@@ -5,22 +5,30 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search, BarChart3, Shield, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  FileText, Landmark, Globe, Newspaper, Users, Star, Check,
 } from 'lucide-react'
+import { Constellation } from '@/components/scarsian/Constellation'
 import { VerdictBadge } from '@/components/scarsian/VerdictBadge'
 import { TrendArrow } from '@/components/scarsian/TrendArrow'
 import { Footer } from '@/components/scarsian/Footer'
 import { featuredCompanies } from '@/lib/data/mockData'
 
-const sourcePills = [
-  'SEC Filings', 'Annual Reports', 'Government Records', 'Company Websites',
-  'Verified News', 'Public Financials', 'LinkedIn Data', 'Glassdoor',
+const trustSources = [
+  { icon: FileText, label: 'SEC Filings' },
+  { icon: FileText, label: 'Annual Reports' },
+  { icon: Landmark, label: 'Government Records' },
+  { icon: Globe, label: 'Company Websites' },
+  { icon: Newspaper, label: 'Verified News' },
+  { icon: BarChart3, label: 'Public Financials' },
+  { icon: Users, label: 'LinkedIn Data' },
+  { icon: Star, label: 'Glassdoor' },
 ]
 
-const trustPoints = [
-  'All sources cited and linkable',
-  'No anonymous reviews in scoring',
+const trustChecks = [
+  'Evidence-based',
+  'Source verified',
   'Updated continuously',
-  'Confidence-weighted results',
+  'No anonymous rankings',
 ]
 
 const faqs = [
@@ -48,8 +56,12 @@ export default function HomePage() {
     <div className="min-h-screen bg-surface">
 
       {/* ===== HERO ===== */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-20 bg-surface">
-        <div className="max-w-[720px] mx-auto text-center flex flex-col items-center">
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-20 overflow-hidden brand-gradient">
+        {/* Constellation background */}
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <Constellation width={1200} height={800} nodeCount={24} opacity={0.06} animated={false} variant="background" />
+        </div>
+        <div className="relative z-10 max-w-[720px] mx-auto text-center flex flex-col items-center">
           {/* Pre-label */}
           <motion.p
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
@@ -77,14 +89,14 @@ export default function HomePage() {
 
           {/* Search bar */}
           <motion.button
-            initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.5 }}
+            initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
             onClick={openSearch}
-            className="w-full max-w-[560px] h-14 flex items-center gap-3 px-6 rounded-xl bg-white border border-divider shadow-sm text-ink-tertiary hover:text-ink-secondary hover:border-brand/40 hover:shadow-md transition-all duration-base ease-default"
+            className="mt-10 w-full max-w-[680px] flex items-center gap-4 px-7 py-[18px] rounded-2xl bg-white border border-divider text-ink-tertiary hover:text-ink-secondary hover:border-brand/30 hover:shadow-search transition-all duration-300 shadow-card"
           >
-            <Search className="w-5 h-5 text-ink-tertiary" />
-            <span className="text-base">Search any company...</span>
-            <div className="ml-auto flex items-center gap-1 text-[10px] text-ink-quaternary border border-divider rounded px-2 py-0.5">
+            <Search className="w-6 h-6" />
+            <span className="text-lg">Search any employer...</span>
+            <div className="ml-auto flex items-center gap-1 text-[11px] text-ink-quaternary border border-divider rounded px-2 py-0.5">
               <span>⌘K</span>
             </div>
           </motion.button>
@@ -92,22 +104,25 @@ export default function HomePage() {
           {/* Popular searches */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
-            className="mt-4 flex items-center gap-2 flex-wrap justify-center"
+            className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-[11px] text-ink-tertiary max-w-[600px]"
           >
-            <span className="text-xs text-ink-tertiary">Popular:</span>
-            {['Goldman Sachs', 'Google HK', 'HSBC', 'Cathay Pacific'].map(s => (
-              <button key={s} onClick={openSearch} className="text-xs text-brand hover:underline">{s}</button>
+            <span className="text-ink-quaternary mr-1">Popular searches:</span>
+            {['Goldman Sachs', 'Google HK', 'HSBC', 'Cathay Pacific'].map((s, i, arr) => (
+              <span key={s}>
+                <button onClick={openSearch} className="hover:text-brand transition-colors underline underline-offset-2 decoration-divider hover:decoration-brand/40">{s}</button>
+                {i < arr.length - 1 && <span className="text-ink-quaternary mx-1">·</span>}
+              </span>
             ))}
           </motion.div>
 
           {/* Value props */}
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-            className="mt-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+            className="mt-12 flex flex-col sm:flex-row items-center gap-5 sm:gap-8"
           >
             {['Evidence-based scores', 'Verified sources only', 'Executive summaries'].map(s => (
-              <div key={s} className="flex items-center gap-2 text-sm text-ink-secondary">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+              <div key={s} className="flex items-center gap-2 text-sm text-ink-tertiary">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand/40" />
                 {s}
               </div>
             ))}
@@ -125,44 +140,34 @@ export default function HomePage() {
       </section>
 
       {/* ===== TRUSTED INTELLIGENCE ===== */}
-      <section id="trusted-intelligence" className="py-20 md:py-28 px-6 bg-surface-elevated border-t border-divider">
-        <div className="max-w-[800px] mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-ink mb-4"
-          >
-            Trusted Intelligence
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="text-sm text-ink-secondary mb-10 max-w-[480px] mx-auto"
-          >
-            Every score is built from verified public sources — never anonymous reviews.
-          </motion.p>
+      <section id="trusted-intelligence" className="py-20 md:py-24 px-6 bg-white border-t border-divider">
+        <div className="max-w-[800px] mx-auto">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-ink tracking-[-0.5px] mb-3">Trusted Intelligence</h2>
+            <p className="text-sm text-ink-secondary max-w-[440px] mx-auto leading-relaxed">
+              Every employer profile is built from independently verified public sources.
+            </p>
+          </motion.div>
 
-          {/* Source pills */}
-          <motion.div
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-            className="flex flex-wrap gap-2.5 justify-center mb-12"
-          >
-            {sourcePills.map(s => (
-              <span key={s} className="px-3 py-1.5 rounded-full bg-surface-subdued border border-divider text-sm text-ink-secondary font-medium">
-                {s}
-              </span>
+          {/* Source badges with icons */}
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className="flex flex-wrap justify-center gap-3 mb-10">
+            {trustSources.map((src) => (
+              <div key={src.label} className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-subdued border border-divider">
+                <src.icon className="w-3.5 h-3.5 text-brand/60" />
+                <span className="text-[11px] font-medium text-ink-secondary">{src.label}</span>
+              </div>
             ))}
           </motion.div>
 
-          {/* Trust checkmarks */}
-          <motion.div
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          >
-            {trustPoints.map(p => (
-              <div key={p} className="flex items-start gap-2 text-left">
-                <svg className="w-4 h-4 text-verdict-green mt-0.5 flex-shrink-0" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8l3.5 3.5L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="text-xs text-ink-secondary leading-snug">{p}</span>
+          {/* Trust checks */}
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+            className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            {trustChecks.map((check) => (
+              <div key={check} className="flex items-center gap-1.5 text-[11px] text-ink-tertiary">
+                <Check className="w-3 h-3 text-emerald-500" />
+                {check}
               </div>
             ))}
           </motion.div>
@@ -170,26 +175,26 @@ export default function HomePage() {
       </section>
 
       {/* ===== FEATURED INTELLIGENCE ===== */}
-      <section className="py-20 md:py-28 px-6 bg-surface border-t border-divider">
-        <div className="max-w-[1100px] mx-auto">
+      <section className="py-24 md:py-28 px-6 bg-surface">
+        <div className="max-w-[1000px] mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="mb-10"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-ink mb-2">Featured Intelligence</h2>
-            <p className="text-sm text-ink-tertiary">Recent analysis from the Scarsian platform</p>
+            <h2 className="text-3xl md:text-[44px] font-bold text-ink tracking-[-1px] mb-2">Featured Intelligence</h2>
+            <p className="text-sm text-ink-tertiary">Recently analyzed employers</p>
           </motion.div>
 
           <div className="relative">
             <button
               onClick={() => scrollCarousel('left')}
-              className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-divider shadow-sm flex items-center justify-center hover:bg-surface-subdued transition-colors hidden md:flex"
+              className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-divider shadow-card flex items-center justify-center hover:bg-surface-subdued transition-colors hidden md:flex"
             >
               <ChevronLeft className="w-4 h-4 text-ink-secondary" />
             </button>
             <button
               onClick={() => scrollCarousel('right')}
-              className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-divider shadow-sm flex items-center justify-center hover:bg-surface-subdued transition-colors hidden md:flex"
+              className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-divider shadow-card flex items-center justify-center hover:bg-surface-subdued transition-colors hidden md:flex"
             >
               <ChevronRight className="w-4 h-4 text-ink-secondary" />
             </button>
@@ -205,10 +210,10 @@ export default function HomePage() {
                   initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }} transition={{ delay: i * 0.07 }}
                   onClick={() => router.push(`/report/${company.id}`)}
-                  className="flex-shrink-0 w-[280px] snap-start scarsian-card p-6 text-left hover:border-brand/30 hover:shadow-md transition-all duration-300"
+                  className="flex-shrink-0 w-[280px] snap-start bg-white border border-divider rounded-2xl p-6 text-left hover:border-brand/30 hover:shadow-elevated transition-all duration-300 shadow-card"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-lg bg-surface-subdued flex items-center justify-center text-xs font-bold text-ink-secondary">
+                    <div className="w-9 h-9 rounded-full bg-surface-subdued border border-divider flex items-center justify-center text-xs font-bold text-ink-secondary">
                       {company.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
@@ -216,9 +221,11 @@ export default function HomePage() {
                       <div className="text-[11px] text-ink-tertiary">{company.industry}</div>
                     </div>
                   </div>
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-ink-tertiary mb-1">Scarsian Index™</div>
-                  <div className="flex items-end justify-between mb-3">
-                    <div className="text-4xl font-bold text-ink tracking-tight">{company.indexScore}</div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="text-[10px] text-ink-tertiary uppercase tracking-wider">Scarsian Index™</div>
+                      <div className="text-2xl font-bold text-ink tabular-nums">{company.indexScore}</div>
+                    </div>
                     <VerdictBadge verdict={company.verdict} size="sm" />
                   </div>
                   <TrendArrow trend={company.trend} showLabel={false} />
@@ -231,31 +238,29 @@ export default function HomePage() {
       </section>
 
       {/* ===== HOW SCARSIAN WORKS ===== */}
-      <section className="py-20 md:py-28 px-6 bg-surface-elevated border-t border-divider">
-        <div className="max-w-[900px] mx-auto">
+      <section id="how-it-works" className="py-24 md:py-28 px-6 bg-white relative">
+        <div className="max-w-[800px] mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-ink text-center mb-14"
+            className="text-3xl md:text-[44px] font-bold text-ink text-center mb-12 tracking-[-1px]"
           >
             How Scarsian Works
           </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { icon: Search, title: 'Search any company', desc: 'Enter a company name. We index companies across every industry and geography in Asia and beyond.' },
-              { icon: BarChart3, title: 'Get the Scarsian Index', desc: 'Our proprietary methodology analyzes financial health, leadership, culture, compensation, and growth trajectory.' },
-              { icon: Shield, title: 'Make your move', desc: 'Strong Move, Consider Carefully, or High Risk. Backed by evidence, not anonymous opinions.' },
+              { icon: Search, title: 'Search any employer', desc: 'Enter a company name. We scan public records, filings, and verified sources.' },
+              { icon: BarChart3, title: 'Get the Scarsian Index™', desc: 'Our engine analyzes financial health, leadership, culture, compensation, and growth.' },
+              { icon: Shield, title: 'Make your move', desc: 'Strong Move, Consider Carefully, or High Risk. Every claim backed by evidence.' },
             ].map((step, i) => (
               <motion.div
                 key={step.title}
-                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="scarsian-card p-8 flex flex-col gap-4"
+                className="bg-white border border-divider rounded-2xl p-7 flex flex-col gap-3.5 shadow-card hover:shadow-elevated transition-shadow"
               >
-                <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center">
-                  <step.icon className="w-5 h-5 text-brand" />
-                </div>
+                <step.icon className="w-7 h-7 text-brand" />
                 <h3 className="text-base font-semibold text-ink">{step.title}</h3>
-                <p className="text-sm text-ink-secondary leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-ink-tertiary leading-relaxed">{step.desc}</p>
               </motion.div>
             ))}
           </div>
