@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Search, BarChart3, Shield, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   FileText, Landmark, Globe, Newspaper, Users, Star, Check,
+  HelpCircle, Building2, Sparkles, Zap, GitCompare, Bookmark, Award, Target,
 } from 'lucide-react'
 import { Constellation } from '@/components/scarsian/Constellation'
 import { VerdictBadge } from '@/components/scarsian/VerdictBadge'
@@ -32,11 +33,24 @@ const trustChecks = [
 ]
 
 const faqs = [
-  { q: 'How does Scarsian calculate the Index score?', a: 'The Scarsian Index is a composite score derived from five core dimensions: financial health, leadership stability, career growth, work-life balance, and compensation competitiveness. Each dimension is weighted and sourced from verified public data.' },
-  { q: 'What sources does Scarsian use?', a: 'We index SEC filings, annual reports, government records, verified news, public financials, LinkedIn data, and Glassdoor — all cited and linkable. No anonymous reviews contribute to our core scoring.' },
-  { q: 'How often is data updated?', a: 'Data is updated continuously as new sources become available. The "last updated" date on each report reflects the most recent data ingestion.' },
-  { q: 'Is Scarsian free to use?', a: 'You receive 3 free reports on signup. After that, full access requires a Career Pass subscription or individual report credits.' },
-  { q: 'Which companies are covered?', a: 'We cover companies across every industry and geography, with a focus on Asia and international employers. If a company is not yet indexed, you can request coverage.' },
+  { q: 'Where does Scarsian\'s data come from?', a: 'Every Intelligence Brief is built from independently verified public sources: SEC filings, corporate annual reports, government registries, trusted business news, company websites, and verified professional data. We never use anonymous reviews or unverified claims.' },
+  { q: 'How often is Scarsian updated?', a: 'Our platform continuously monitors trusted sources. The Scarsian Index and Evidence Confidence scores update as new verified information becomes available. Most employers are refreshed within 24–72 hours.' },
+  { q: 'Can companies pay to improve their score?', a: 'No. The Scarsian Index is calculated entirely from publicly available evidence using our proprietary methodology. No company can influence their score through payment or partnership.' },
+  { q: 'How is the Scarsian Index calculated?', a: 'The Scarsian Index is a composite score derived from five core dimensions: Financial Strength, Leadership, Career Growth, Compensation, and Culture. Each dimension is scored based on verified evidence, then weighted and combined into a single 0–100 score.' },
+  { q: 'How reliable is the Executive Summary?', a: 'Every Executive Summary is generated from verified evidence and cross-referenced against multiple independent sources. The Evidence Confidence indicator shows how much verified data supports each Brief.' },
+  { q: 'Why do confidence scores vary between employers?', a: 'Evidence Confidence reflects the volume, recency, and diversity of sources available for each employer. Large public companies typically have higher confidence due to more frequent disclosures. Private companies or smaller firms may have lower confidence simply because less public data exists.' },
+]
+
+const features = [
+  { icon: Building2, title: 'Employer Profiles', desc: 'Comprehensive data including industry, size, geography, and corporate structure.' },
+  { icon: BarChart3, title: 'Scarsian Index™', desc: 'Proprietary composite score across all analysis dimensions into one actionable number.' },
+  { icon: Sparkles, title: 'Executive Summary™', desc: 'Natural language intelligence report synthesizing all data into readable insight.' },
+  { icon: Zap, title: 'Key Findings', desc: 'Timestamped findings with source attribution. Track changes and emerging patterns.' },
+  { icon: Globe, title: 'Source Transparency', desc: 'Every claim linked to its source. SEC filings, news, employee data, public records.' },
+  { icon: GitCompare, title: 'Comparison', desc: 'Side-by-side across all dimensions. Up to 3 employers. Export and share.' },
+  { icon: Bookmark, title: 'Watchlist', desc: 'Track employers you are considering. Alerts when scores change or new findings appear.' },
+  { icon: Award, title: 'Evidence Confidence™', desc: 'Every index includes confidence based on data volume, recency, and source diversity.' },
+  { icon: Target, title: 'For You', desc: 'Set your priorities and every score adapts. Salary, growth, stability — your way.' },
 ]
 
 export default function HomePage() {
@@ -267,54 +281,86 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FAQ ===== */}
-      <section className="py-20 md:py-28 px-6 bg-surface border-t border-divider">
-        <div className="max-w-[720px] mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-ink text-center mb-12"
-          >
-            Frequently Asked Questions
-          </motion.h2>
-          <div className="flex flex-col divide-y divide-divider border border-divider rounded-2xl bg-surface-elevated overflow-hidden">
-            {faqs.map((faq, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
-              >
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-surface-subdued transition-colors"
-                >
-                  <span className="text-sm font-semibold text-ink">{faq.q}</span>
-                  {openFaq === i
-                    ? <ChevronUp className="w-4 h-4 text-ink-tertiary flex-shrink-0" />
-                    : <ChevronDown className="w-4 h-4 text-ink-tertiary flex-shrink-0" />
-                  }
-                </button>
-                {openFaq === i && (
-                  <div className="px-6 pb-5">
-                    <p className="text-sm text-ink-secondary leading-relaxed">{faq.a}</p>
-                  </div>
-                )}
+      {/* ===== INTELLIGENCE THAT MOVES CAREERS (Features) ===== */}
+      <section className="py-24 md:py-28 px-6 bg-surface">
+        <div className="max-w-[800px] mx-auto">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12">
+            <h2 className="text-3xl md:text-[44px] font-bold text-ink tracking-[-1px] mb-3">Intelligence That Moves Careers</h2>
+            <p className="text-sm text-ink-tertiary">Every dimension of an employer, analyzed and scored</p>
+          </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-9">
+            {features.map((f, i) => (
+              <motion.div key={f.title} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.04 }}
+                className="flex flex-col gap-2">
+                <f.icon className="w-5 h-5 text-brand/70 mb-0.5" />
+                <h3 className="text-sm font-semibold text-ink">{f.title}</h3>
+                <p className="text-xs text-ink-tertiary leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ===== CTA ===== */}
-      <section className="py-20 md:py-28 px-6 bg-surface-elevated border-t border-divider">
+      {/* ===== EARLY ACCESS ===== */}
+      <section className="py-24 md:py-28 px-6 bg-surface-subdued">
         <div className="max-w-[600px] mx-auto text-center">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <div className="w-12 h-12 rounded-2xl bg-white border border-divider flex items-center justify-center mx-auto mb-5 shadow-card">
+              <Users className="w-5 h-5 text-brand" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-ink tracking-[-0.5px] mb-3">Coming Soon</h2>
+            <p className="text-sm text-ink-secondary max-w-[400px] mx-auto leading-relaxed mb-4">
+              Early access feedback will appear here. We&apos;re working with professionals to validate every Intelligence Brief before broader release.
+            </p>
+            <p className="text-[11px] text-ink-quaternary">Trust is more important than social proof.</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== FAQ ===== */}
+      <section className="py-24 md:py-28 px-6 bg-white">
+        <div className="max-w-[640px] mx-auto">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle className="w-3.5 h-3.5 text-brand" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-brand">FAQ</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-ink tracking-[-0.5px]">Common Questions</h2>
+          </motion.div>
+          <div className="flex flex-col divide-y divide-divider">
+            {faqs.map((faq, i) => (
+              <div key={i}>
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between py-4 text-left group"
+                >
+                  <span className="text-sm font-medium text-ink group-hover:text-brand transition-colors pr-4">{faq.q}</span>
+                  <ChevronDown className={`w-4 h-4 text-ink-quaternary flex-shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`} />
+                </button>
+                {openFaq === i && (
+                  <div className="pb-4">
+                    <p className="text-sm text-ink-secondary leading-relaxed">{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== CTA ===== */}
+      <section className="py-24 md:py-28 px-6 bg-surface">
+        <div className="max-w-[520px] mx-auto text-center">
           <motion.h2
             initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-            className="text-3xl md:text-5xl font-bold text-ink mb-5 tracking-tight"
+            className="text-3xl md:text-[44px] font-bold text-ink mb-4 tracking-[-1px]"
           >
-            Make your next move<br />with confidence.
+            Make your next move with confidence.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="text-base text-ink-secondary mb-8"
+            className="text-sm text-ink-secondary mb-8"
           >
             Your career priorities. Our intelligence. The right decision.
           </motion.p>
@@ -322,12 +368,12 @@ export default function HomePage() {
             initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }} transition={{ delay: 0.2 }}
             onClick={openSearch}
-            className="inline-flex items-center gap-2.5 px-8 py-4 bg-brand hover:bg-brand-hover text-white font-semibold rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm"
+            className="inline-flex items-center gap-2.5 px-8 py-4 bg-brand hover:bg-brand-hover text-white font-semibold rounded-xl text-sm transition-all shadow-card"
           >
-            <Search className="w-5 h-5" />
-            Search a Company
+            <Search className="w-4 h-4" />
+            Search an Employer
           </motion.button>
-          <p className="mt-4 text-xs text-ink-tertiary">3 free reports on signup. Full access with Career Pass.</p>
+          <p className="mt-4 text-[11px] text-ink-quaternary">Free to search. Unlock full briefs with credits.</p>
         </div>
       </section>
 

@@ -132,3 +132,48 @@ export const companies: CompanyReport[] = [
 ]
 
 export const featuredCompanies = companies
+
+export const creditPackages = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    credits: 3,
+    price: 29,
+    perCredit: '$9.67 per credit',
+    features: ['3 Intelligence Briefs', 'Evidence Confidence score', 'Key Findings feed', 'Executive Summary'],
+    popular: false,
+    save: null,
+    badge: null,
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    credits: 10,
+    price: 79,
+    perCredit: '$7.90 per credit',
+    features: ['10 Intelligence Briefs', 'Evidence Confidence score', 'Key Findings feed', 'Executive Summary', 'Watchlist alerts', 'Export briefs'],
+    popular: true,
+    save: 'Save 18%',
+    badge: 'Most Popular',
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    credits: 30,
+    price: 199,
+    perCredit: '$6.63 per credit',
+    features: ['30 Intelligence Briefs', 'All Professional features', 'Priority data refresh', 'Team sharing', 'Dedicated support'],
+    popular: false,
+    save: 'Save 31%',
+    badge: 'Best Value',
+  },
+]
+
+export const transactions = [
+  { id: 't1', date: 'Jan 28, 2025', type: 'purchase', description: 'Professional Pack — 10 credits', amount: +10, status: 'complete' },
+  { id: 't2', date: 'Jan 22, 2025', type: 'usage', description: 'Intelligence Brief: Stripe', amount: -1, status: 'complete' },
+  { id: 't3', date: 'Jan 18, 2025', type: 'usage', description: 'Intelligence Brief: Netflix', amount: -1, status: 'complete' },
+  { id: 't4', date: 'Dec 15, 2024', type: 'purchase', description: 'Starter Pack — 3 credits', amount: +3, status: 'complete' },
+  { id: 't5', date: 'Dec 10, 2024', type: 'usage', description: 'Intelligence Brief: Airbnb', amount: -1, status: 'complete' },
+  { id: 't6', date: 'Dec 01, 2024', type: 'bonus', description: 'Free signup credits', amount: +3, status: 'complete' },
+]
