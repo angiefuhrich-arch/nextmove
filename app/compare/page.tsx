@@ -7,6 +7,7 @@ import { GitCompare, X, Plus, Search } from 'lucide-react'
 import { companies } from '@/lib/data/mockData'
 import { VerdictBadge } from '@/components/scarsian/VerdictBadge'
 import { Footer } from '@/components/scarsian/Footer'
+import { cn } from '@/lib/utils'
 
 export default function ComparePage() {
   const router = useRouter()
@@ -15,34 +16,32 @@ export default function ComparePage() {
   const selectedCompanies = companies.filter(c => selected.includes(c.id))
   const available = companies.filter(c => !selected.includes(c.id))
 
-  const add = (id: string) => {
-    if (selected.length < 3) setSelected(prev => [...prev, id])
-  }
-  const remove = (id: string) => setSelected(prev => prev.filter(x => x !== id))
+  const add = (id: string) => { if (selected.length < 3) setSelected(p => [...p, id]) }
+  const remove = (id: string) => setSelected(p => p.filter(x => x !== id))
 
   const metricKeys = selectedCompanies[0]?.categories.map(c => c.name) ?? []
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen bg-surface pt-14">
       <div className="max-w-[1000px] mx-auto px-6 py-12">
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <div className="flex items-center gap-2 mb-2">
-            <GitCompare className="w-5 h-5 text-blue" />
-            <h1 className="text-2xl font-bold text-white">Compare Companies</h1>
+            <GitCompare className="w-5 h-5 text-brand" />
+            <h1 className="text-title-lg text-ink font-bold">Compare Employers</h1>
           </div>
-          <p className="text-sm text-white/50">Side-by-side intelligence across all categories. Up to 3 companies.</p>
+          <p className="text-body-sm text-ink-tertiary">Side-by-side intelligence across all dimensions. Up to 3 employers.</p>
         </motion.div>
 
         {/* Company selector */}
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div className="flex flex-wrap gap-2 mb-8">
           {selectedCompanies.map(c => (
-            <div key={c.id} className="flex items-center gap-2 px-4 py-2 bg-blue/15 border border-blue/30 rounded-xl text-sm text-white">
-              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold">
+            <div key={c.id} className="flex items-center gap-2 h-9 px-3 bg-brand-light border border-brand/20 rounded-lg text-body-sm text-brand">
+              <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center text-label font-bold">
                 {c.name.substring(0, 2).toUpperCase()}
               </div>
               {c.name}
-              <button onClick={() => remove(c.id)} className="text-white/40 hover:text-white transition-colors">
+              <button onClick={() => remove(c.id)} className="text-brand/50 hover:text-brand transition-colors duration-fast">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -51,7 +50,7 @@ export default function ComparePage() {
             <button
               key={c.id}
               onClick={() => add(c.id)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white/40 hover:text-white hover:border-white/20 transition-all"
+              className="flex items-center gap-2 h-9 px-3 bg-surface-elevated border border-divider rounded-lg text-body-sm text-ink-tertiary hover:text-ink hover:border-brand/30 transition-colors duration-fast"
             >
               <Plus className="w-3.5 h-3.5" />
               {c.name}
@@ -60,65 +59,61 @@ export default function ComparePage() {
         </div>
 
         {selectedCompanies.length < 2 ? (
-          <div className="flex flex-col items-center gap-4 py-20 text-white/40">
-            <Search className="w-10 h-10 text-white/20" />
-            <p>Select at least 2 companies to compare</p>
+          <div className="flex flex-col items-center gap-4 py-24 text-ink-quaternary">
+            <Search className="w-10 h-10 text-ink-quaternary/50" />
+            <p className="text-body-sm">Select at least 2 employers to compare</p>
           </div>
         ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-x-auto">
-            <table className="w-full">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-x-auto rounded-2xl border border-divider shadow-md">
+            <table className="w-full text-left">
               <thead>
-                <tr>
-                  <th className="text-left py-3 pr-6 text-[11px] font-semibold uppercase tracking-wider text-white/40 w-36">Metric</th>
+                <tr className="border-b border-divider bg-surface-subdued/40">
+                  <th className="px-4 py-3 text-label uppercase tracking-widest text-ink-tertiary font-semibold w-36">Dimension</th>
                   {selectedCompanies.map(c => (
-                    <th key={c.id} className="py-3 px-4 text-center">
-                      <button onClick={() => router.push(`/report/${c.id}`)} className="hover:text-blue transition-colors">
-                        <div className="text-sm font-bold text-white">{c.name}</div>
-                        <div className="text-[11px] text-white/40">{c.industry}</div>
+                    <th key={c.id} className="px-4 py-3 text-center">
+                      <button onClick={() => router.push(`/report/${c.id}`)} className="hover:text-brand transition-colors duration-fast">
+                        <p className="text-body-sm font-bold text-ink">{c.name}</p>
+                        <p className="text-caption text-ink-tertiary">{c.industry}</p>
                       </button>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {/* Index score */}
-                <tr className="border-t border-white/[0.06]">
-                  <td className="py-4 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">Scarsian Index</td>
+                <tr className="border-b border-divider">
+                  <td className="px-4 py-3 text-label uppercase tracking-wider text-ink-tertiary font-semibold">Scarsian Index</td>
                   {selectedCompanies.map(c => (
-                    <td key={c.id} className="py-4 px-4 text-center">
-                      <div className="text-3xl font-bold text-white">{c.indexScore}</div>
+                    <td key={c.id} className="px-4 py-3 text-center">
+                      <span className="text-metric-md text-ink font-bold">{c.indexScore}</span>
                     </td>
                   ))}
                 </tr>
-                {/* Verdict */}
-                <tr className="border-t border-white/[0.06]">
-                  <td className="py-4 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">Verdict</td>
+                <tr className="border-b border-divider">
+                  <td className="px-4 py-3 text-label uppercase tracking-wider text-ink-tertiary font-semibold">Verdict</td>
                   {selectedCompanies.map(c => (
-                    <td key={c.id} className="py-4 px-4 text-center">
+                    <td key={c.id} className="px-4 py-3 text-center">
                       <VerdictBadge verdict={c.verdict} size="sm" />
                     </td>
                   ))}
                 </tr>
-                {/* Confidence */}
-                <tr className="border-t border-white/[0.06]">
-                  <td className="py-4 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">Confidence</td>
+                <tr className="border-b border-divider">
+                  <td className="px-4 py-3 text-label uppercase tracking-wider text-ink-tertiary font-semibold">Confidence</td>
                   {selectedCompanies.map(c => (
-                    <td key={c.id} className="py-4 px-4 text-center">
-                      <span className="text-sm font-semibold text-white">{c.confidence}%</span>
+                    <td key={c.id} className="px-4 py-3 text-center">
+                      <span className="text-body-sm font-semibold text-ink">{c.confidence}%</span>
                     </td>
                   ))}
                 </tr>
-                {/* Category scores */}
-                {metricKeys.map(metric => (
-                  <tr key={metric} className="border-t border-white/[0.06]">
-                    <td className="py-3.5 pr-6 text-[11px] text-white/50 font-semibold uppercase tracking-wider">{metric}</td>
+                {metricKeys.map((metric, mi) => (
+                  <tr key={metric} className={cn('border-b border-divider last:border-0', mi % 2 === 0 && 'bg-surface/40')}>
+                    <td className="px-4 py-3 text-label uppercase tracking-wider text-ink-tertiary font-semibold">{metric}</td>
                     {selectedCompanies.map(c => {
                       const cat = c.categories.find(x => x.name === metric)
                       const score = cat?.score ?? 0
                       const best = Math.max(...selectedCompanies.map(x => x.categories.find(y => y.name === metric)?.score ?? 0))
                       return (
-                        <td key={c.id} className="py-3.5 px-4 text-center">
-                          <span className={`text-sm font-bold ${score === best ? 'text-verdict-green' : 'text-white/70'}`}>
+                        <td key={c.id} className="px-4 py-3 text-center">
+                          <span className={cn('text-body-sm font-bold', score === best ? 'text-status-success' : 'text-ink-tertiary')}>
                             {score}
                           </span>
                         </td>

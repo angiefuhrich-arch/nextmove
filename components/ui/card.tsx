@@ -19,8 +19,8 @@ function Card({ className, padding = 'none', hover = false, ...props }: CardProp
   return (
     <div
       className={cn(
-        'bg-surface-elevated border border-divider rounded-2xl shadow-card',
-        hover && 'transition-all duration-base ease-out hover:shadow-card-hover hover:border-ink-quaternary/40 cursor-pointer',
+        'bg-surface-elevated border border-divider rounded-2xl shadow-md',
+        hover && 'transition-all duration-base ease-default hover:shadow-lg hover:-translate-y-0.5 hover:border-brand-muted cursor-pointer',
         paddingClasses[padding],
         className
       )}

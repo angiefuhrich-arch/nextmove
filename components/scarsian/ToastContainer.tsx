@@ -12,10 +12,10 @@ const icons = {
 }
 
 const colors = {
-  success: 'text-verdict-green border-verdict-green/30 bg-verdict-green/10',
-  error: 'text-verdict-red border-verdict-red/30 bg-verdict-red/10',
-  warning: 'text-verdict-amber border-verdict-amber/30 bg-verdict-amber/10',
-  info: 'text-blue border-blue/30 bg-blue/10',
+  success: 'text-status-success border-status-success-border bg-status-success-bg',
+  error:   'text-status-danger  border-status-danger-border  bg-status-danger-bg',
+  warning: 'text-status-warning border-status-warning-border bg-status-warning-bg',
+  info:    'text-status-info    border-status-info-border    bg-status-info-bg',
 }
 
 interface ToastContainerProps {
@@ -25,7 +25,7 @@ interface ToastContainerProps {
 
 export function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
   return (
-    <div className="fixed top-20 right-4 z-[500] flex flex-col gap-2 w-80 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-toast flex flex-col gap-2 w-80 pointer-events-none">
       <AnimatePresence>
         {toasts.map(toast => {
           const Icon = icons[toast.type]
@@ -36,13 +36,13 @@ export function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 100 }}
               transition={{ duration: 0.3 }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${colors[toast.type]} backdrop-blur-sm pointer-events-auto`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-md ${colors[toast.type]} pointer-events-auto`}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm text-white/90 flex-1">{toast.message}</p>
+              <p className="text-body-sm flex-1">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="p-1 hover:bg-white/10 rounded transition-colors"
+                className="p-1 hover:bg-black/5 rounded transition-colors duration-fast"
               >
                 <X className="w-4 h-4" />
               </button>

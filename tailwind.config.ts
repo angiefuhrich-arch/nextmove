@@ -92,6 +92,17 @@ const config: Config = {
           amber: '#F59E0B',
           red: '#EF4444',
         },
+        // Category colors (Timeline / Signals — DS §1.1)
+        category: {
+          financial:  { DEFAULT: '#10B981', light: '#ECFDF5' },
+          leadership: { DEFAULT: '#3B82F6', light: '#EFF6FF' },
+          layoffs:    { DEFAULT: '#EF4444', light: '#FEF2F2' },
+          hiring:     { DEFAULT: '#8B5CF6', light: '#F5F3FF' },
+          legal:      { DEFAULT: '#F97316', light: '#FFF7ED' },
+          awards:     { DEFAULT: '#F59E0B', light: '#FFFBEB' },
+          growth:     { DEFAULT: '#06B6D4', light: '#ECFEFF' },
+          culture:    { DEFAULT: '#EC4899', light: '#FDF2F8' },
+        },
         // Semantic status colors
         status: {
           success: '#10B981',
@@ -177,6 +188,22 @@ const config: Config = {
         'ease-spring':   'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
         'ease-out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
         spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      },
+      // Z-index token system (DS §1.7)
+      zIndex: {
+        base:      '0',
+        elevated:  '10',
+        dropdown:  '50',
+        modal:     '100',
+        command:   '200',
+        toast:     '300',
+        tooltip:   '400',
+      },
+      // Named semantic spacing (DS §1.8)
+      spacing: {
+        card:    '24px',
+        section: '48px',
+        page:    '24px',
       },
       animation: {
         'glow-pulse':   'glowPulse 4s ease-in-out infinite',

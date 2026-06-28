@@ -181,7 +181,7 @@ function RunSection({
               <Th>Status</Th>
               <Th className="hidden md:table-cell">Step</Th>
               {variant === 'active' && <Th className="hidden lg:table-cell">Progress</Th>}
-              {variant === 'completed' && <Th className="hidden md:table-cell">Signals</Th>}
+              {variant === 'completed' && <Th className="hidden md:table-cell">Findings</Th>}
               {variant === 'failed' && <Th>Error</Th>}
               <Th className="hidden sm:table-cell">Duration</Th>
               <Th>Started</Th>

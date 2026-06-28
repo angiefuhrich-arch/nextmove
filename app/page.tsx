@@ -80,7 +80,7 @@ export default function HomePage() {
             initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.5 }}
             onClick={openSearch}
-            className="w-full max-w-[560px] flex items-center gap-3 px-6 py-4 rounded-full bg-white border border-divider shadow-sm text-ink-tertiary hover:text-ink-secondary hover:border-brand/40 hover:shadow-md transition-all duration-300"
+            className="w-full max-w-[560px] h-14 flex items-center gap-3 px-6 rounded-xl bg-white border border-divider shadow-sm text-ink-tertiary hover:text-ink-secondary hover:border-brand/40 hover:shadow-md transition-all duration-base ease-default"
           >
             <Search className="w-5 h-5 text-ink-tertiary" />
             <span className="text-base">Search any company...</span>

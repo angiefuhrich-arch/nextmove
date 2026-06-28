@@ -65,6 +65,13 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+    .animate-glow-pulse { animation: none; }
+  }
+
+  /* Timeline responsive — on very small screens, date moves above content */
+  @media (max-width: 375px) {
+    .timeline-date { position: static; margin-bottom: 4px; }
+    .timeline-line { display: none; }
   }
 }
 
