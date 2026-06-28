@@ -6,26 +6,26 @@
 
 @layer base {
   :root {
-    /* Scarsian Dark Theme */
-    --background: 216 65% 14%;
-    --foreground: 0 0% 100%;
-    --card: 216 50% 7%;
-    --card-foreground: 0 0% 100%;
-    --popover: 216 50% 7%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 229 100% 62%;
+    /* Scarsian Light Theme v42 */
+    --background: 0 0% 98%;
+    --foreground: 222 84% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 84% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 5%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 216 45% 25%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 216 45% 25%;
-    --muted-foreground: 0 0% 100% / 0.5;
-    --accent: 216 45% 25%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 84% 5%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 84% 5%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 216 45% 25%;
-    --input: 216 45% 25%;
-    --ring: 229 100% 62%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
     --radius: 0.75rem;
   }
 
@@ -42,16 +42,16 @@
 
   body {
     font-family: 'Inter', -apple-system, sans-serif;
-    background-color: #0B1D3A;
-    color: white;
+    background-color: #FAFAFA;
+    color: #111827;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
 
   /* Focus ring */
   *:focus-visible {
@@ -71,21 +71,19 @@
 @layer components {
   /* Card base */
   .scarsian-card {
-    @apply bg-navy-dark border border-navy-light rounded-2xl;
+    @apply bg-surface-elevated border border-divider rounded-2xl shadow-sm;
   }
 
-  /* 3D glow text effect */
+  /* 3D glow text effect (light theme — subtle) */
   .text-glow {
     text-shadow:
-      0 0 40px rgba(59, 91, 255, 0.30),
-      0 0 80px rgba(59, 91, 255, 0.20),
-      0 0 120px rgba(59, 91, 255, 0.10),
-      0 4px 8px rgba(0, 0, 0, 0.30);
+      0 0 40px rgba(37, 99, 235, 0.15),
+      0 0 80px rgba(37, 99, 235, 0.08);
   }
 
   /* Glass overlay */
   .glass {
-    background: rgba(0, 8, 20, 0.85);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
@@ -204,8 +202,19 @@
 
   /* Nav backdrop */
   .nav-blur {
-    background: rgba(11, 29, 58, 0.70);
+    background: rgba(255, 255, 255, 0.90);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Pipeline active dot animation */
+  .pipeline-active span {
+    animation: pipelineDot 1.4s ease-in-out infinite;
+  }
+  .pipeline-active span:nth-child(2) { animation-delay: 0.2s; }
+  .pipeline-active span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pipelineDot {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
   }
 }

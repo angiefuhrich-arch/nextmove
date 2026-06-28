@@ -43,7 +43,29 @@ const config: Config = {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
         },
-        // Scarsian Design System
+        // Scarsian Design System (light theme v42)
+        surface: {
+          DEFAULT: '#FAFAFA',
+          elevated: '#FFFFFF',
+          subdued: '#F3F4F6',
+        },
+        ink: {
+          DEFAULT: '#111827',
+          secondary: '#4B5563',
+          tertiary: '#9CA3AF',
+          quaternary: '#D1D5DB',
+        },
+        divider: {
+          DEFAULT: '#E5E7EB',
+          subtle: '#F3F4F6',
+        },
+        brand: {
+          DEFAULT: '#2563EB',
+          hover: '#1D4ED8',
+          light: '#EFF6FF',
+          muted: '#93C5FD',
+        },
+        // Legacy dark theme (backward compat)
         navy: {
           DEFAULT: '#0B1D3A',
           dark: '#070F1E',
@@ -51,8 +73,8 @@ const config: Config = {
           darker: '#050D18',
         },
         blue: {
-          DEFAULT: '#3B5BFF',
-          hover: '#5468FF',
+          DEFAULT: '#2563EB',
+          hover: '#1D4ED8',
         },
         verdict: {
           green: '#10B981',
@@ -88,8 +110,13 @@ const config: Config = {
         'bounce-slow': 'bounceSlow 2s ease-in-out infinite',
         'spin-slow': 'spinSlow 1s linear infinite',
         'caret-blink': 'caretBlink 1.25s ease-out infinite',
+        'pipeline-dot': 'pipelineDot 1.4s ease-in-out infinite',
       },
       keyframes: {
+        pipelineDot: {
+          '0%, 80%, 100%': { opacity: '0.2', transform: 'scale(0.8)' },
+          '40%': { opacity: '1', transform: 'scale(1)' },
+        },
         glowPulse: {
           '0%, 100%': { textShadow: '0 0 40px rgba(59,91,255,0.24), 0 0 80px rgba(59,91,255,0.16), 0 0 120px rgba(59,91,255,0.08), 0 4px 8px rgba(0,0,0,0.30)' },
           '50%': { textShadow: '0 0 40px rgba(59,91,255,0.36), 0 0 80px rgba(59,91,255,0.24), 0 0 120px rgba(59,91,255,0.12), 0 4px 8px rgba(0,0,0,0.30)' },
