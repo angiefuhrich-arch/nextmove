@@ -7,6 +7,19 @@ process.env.NEXT_PUBLIC_SUPABASE_URL      = 'https://test.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY     = 'test-service-role-key'
 
+// Shim Next.js server-only guard so modules load in the test runner
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require('module').register || (() => {})()
+;(require('module') as { _resolveFilename: unknown })
+// The simplest shim: register 'server-only' as an empty module
+const Module = require('module') as { _resolveFilename(id: string, ...args: unknown[]): string }
+const _origResolve = Module._resolveFilename.bind(Module)
+Module._resolveFilename = function(id: string, ...args: unknown[]): string {
+  if (id === 'server-only') return id
+  return _origResolve(id, ...args)
+}
+require.cache['server-only'] = { id: 'server-only', filename: 'server-only', loaded: true, exports: {}, children: [], paths: [], parent: null } as unknown as NodeJS.Module
+
 let passed = 0
 let failed = 0
 

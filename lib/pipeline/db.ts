@@ -16,6 +16,52 @@ import { classifyUrl } from './source-tiers'
 
 export type FetchStatus = 'pending' | 'success' | 'failed' | 'skipped' | 'blocked'
 
+// ── Phase E types ─────────────────────────────────────────────────────────────
+
+export type IntelligenceEventType =
+  | 'leadership_change' | 'hiring_increase' | 'hiring_slowdown'
+  | 'expansion' | 'restructuring' | 'layoff'
+  | 'financial_growth' | 'financial_decline'
+  | 'award' | 'regulatory_issue' | 'policy_change'
+  | 'product_strategy' | 'market_signal' | 'insufficient_event_data'
+
+export type SignalCategory =
+  | 'financial_strength' | 'leadership' | 'career_growth'
+  | 'culture' | 'compensation' | 'global_friendliness' | 'job_stability'
+
+export type SignalDirection = 'positive' | 'negative' | 'neutral'
+
+export interface IntelligenceEventInsert {
+  pipelineRunId: string
+  entityId: string
+  eventType: IntelligenceEventType
+  title: string
+  summary: string
+  eventDate?: string | null          // ISO date string YYYY-MM-DD
+  eventDatePrecision?: string | null
+  supportingEvidenceIds: string[]
+  confidence: number                  // 0–1
+  sourceTier: number                  // 1–4
+  eventExtractionPromptVersion?: string
+  evidenceSchemaVersion?: string
+}
+
+export interface IntelligenceSignalInsert {
+  pipelineRunId: string
+  entityId: string
+  eventId: string
+  category: SignalCategory
+  subcategory?: string | null
+  direction: SignalDirection
+  magnitude: number                   // 0–100
+  weight: number                      // 0–1
+  confidence: number                  // 0–1
+  reliability: number                 // 0–1
+  expiryDate?: string | null          // ISO date string
+  explanation: string
+  signalGenerationPromptVersion?: string
+}
+
 export interface EvidenceInsert {
   pipelineRunId: string
   entityId?: string
@@ -264,6 +310,38 @@ export async function insertEvidenceRecord(ev: EvidenceInsert): Promise<string |
   return data?.id as string ?? null
 }
 
+export interface EvidenceRecord {
+  id: string
+  evidenceType: string
+  rawText: string
+  sourceUrl: string | null
+  sourceTier: number
+  collectedAt: string
+}
+
+/** Read non-duplicate Tier 1–3 evidence records for a run, ordered by tier (best first). */
+export async function getEvidenceForExtraction(runId: string, maxTier = 3): Promise<EvidenceRecord[]> {
+  const db = createAdminClient()
+  const { data, error } = await db
+    .from('evidence_records')
+    .select('id, evidence_type, raw_text, source_url, source_tier, collected_at')
+    .eq('pipeline_run_id', runId)
+    .eq('is_duplicate', false)
+    .lte('source_tier', maxTier)
+    .order('source_tier', { ascending: true })
+    .order('collected_at', { ascending: true })
+
+  if (error) throw new Error(`Failed to get evidence records: ${error.message}`)
+  return (data ?? []).map(r => ({
+    id:           r.id as string,
+    evidenceType: r.evidence_type as string,
+    rawText:      r.raw_text as string,
+    sourceUrl:    r.source_url as string | null,
+    sourceTier:   Number(r.source_tier),
+    collectedAt:  r.collected_at as string,
+  }))
+}
+
 export async function getEvidenceCount(runId: string, maxTier = 3): Promise<number> {
   const db = createAdminClient()
   const { count } = await db
@@ -396,4 +474,124 @@ export async function buildContext(runId: string): Promise<PipelineContext> {
     entityId:        (run.entity_id as string | undefined) ?? undefined,
     pipelineVersion: (run.pipeline_version as string) ?? PIPELINE_VERSION,
   }
+}
+
+// ── Phase E: Intelligence events ──────────────────────────────────────────────
+
+export async function insertIntelligenceEvent(ev: IntelligenceEventInsert): Promise<string> {
+  const db = createAdminClient()
+  const { data, error } = await db
+    .from('intelligence_events')
+    .insert({
+      pipeline_run_id:                  ev.pipelineRunId,
+      entity_id:                        ev.entityId,
+      event_type:                       ev.eventType,
+      title:                            ev.title,
+      summary:                          ev.summary,
+      event_date:                       ev.eventDate ?? null,
+      event_date_precision:             ev.eventDatePrecision ?? null,
+      supporting_evidence_ids:          ev.supportingEvidenceIds,
+      confidence:                       ev.confidence,
+      source_tier:                      ev.sourceTier,
+      event_extraction_prompt_version:  ev.eventExtractionPromptVersion ?? '1.0.0',
+      evidence_schema_version:          ev.evidenceSchemaVersion ?? '1.0.0',
+    })
+    .select('id')
+    .single()
+
+  if (error || !data) throw new Error(`Failed to insert intelligence event: ${error?.message}`)
+  return data.id as string
+}
+
+export async function getIntelligenceEvents(runId: string): Promise<Array<{
+  id: string
+  eventType: IntelligenceEventType
+  title: string
+  summary: string
+  eventDate: string | null
+  supportingEvidenceIds: string[]
+  confidence: number
+  sourceTier: number
+}>> {
+  const db = createAdminClient()
+  const { data, error } = await db
+    .from('intelligence_events')
+    .select('id, event_type, title, summary, event_date, supporting_evidence_ids, confidence, source_tier')
+    .eq('pipeline_run_id', runId)
+    .neq('event_type', 'insufficient_event_data')
+    .order('confidence', { ascending: false })
+
+  if (error) throw new Error(`Failed to get intelligence events: ${error.message}`)
+  return (data ?? []).map(r => ({
+    id:                   r.id as string,
+    eventType:            r.event_type as IntelligenceEventType,
+    title:                r.title as string,
+    summary:              r.summary as string,
+    eventDate:            r.event_date as string | null,
+    supportingEvidenceIds: (r.supporting_evidence_ids ?? []) as string[],
+    confidence:           Number(r.confidence),
+    sourceTier:           Number(r.source_tier),
+  }))
+}
+
+export async function getEventCount(runId: string): Promise<number> {
+  const db = createAdminClient()
+  const { count } = await db
+    .from('intelligence_events')
+    .select('*', { count: 'exact', head: true })
+    .eq('pipeline_run_id', runId)
+    .neq('event_type', 'insufficient_event_data')
+  return count ?? 0
+}
+
+// ── Phase E: Intelligence signals ─────────────────────────────────────────────
+
+export async function insertIntelligenceSignal(sig: IntelligenceSignalInsert): Promise<string> {
+  const db = createAdminClient()
+  const { data, error } = await db
+    .from('intelligence_signals')
+    .insert({
+      pipeline_run_id:                  sig.pipelineRunId,
+      entity_id:                        sig.entityId,
+      event_id:                         sig.eventId,
+      category:                         sig.category,
+      subcategory:                      sig.subcategory ?? null,
+      direction:                        sig.direction,
+      magnitude:                        sig.magnitude,
+      weight:                           sig.weight,
+      confidence:                       sig.confidence,
+      reliability:                      sig.reliability,
+      expiry_date:                      sig.expiryDate ?? null,
+      explanation:                      sig.explanation,
+      signal_generation_prompt_version: sig.signalGenerationPromptVersion ?? '1.0.0',
+    })
+    .select('id')
+    .single()
+
+  if (error || !data) throw new Error(`Failed to insert intelligence signal: ${error?.message}`)
+  return data.id as string
+}
+
+export async function getSignalCount(runId: string): Promise<number> {
+  const db = createAdminClient()
+  const { count } = await db
+    .from('intelligence_signals')
+    .select('*', { count: 'exact', head: true })
+    .eq('pipeline_run_id', runId)
+  return count ?? 0
+}
+
+/** Update pipeline_runs with final event/signal counts after Phase E. */
+export async function recordPhaseECounts(
+  runId: string,
+  eventCount: number,
+  signalCount: number,
+  insufficientEvents: boolean,
+) {
+  const db = createAdminClient()
+  await db.from('pipeline_runs').update({
+    event_count:         eventCount,
+    signal_count:        signalCount,
+    insufficient_events: insufficientEvents,
+  }).eq('id', runId)
 }
