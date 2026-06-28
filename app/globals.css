@@ -7,25 +7,25 @@
 @layer base {
   :root {
     /* Scarsian Light Theme v42 */
-    --background: 0 0% 98%;
-    --foreground: 222 84% 5%;
+    --background: 40 10% 96%;
+    --foreground: 220 13% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222 84% 5%;
+    --card-foreground: 220 13% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 84% 5%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 220 13% 9%;
+    --primary: 183 75% 22%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 84% 5%;
-    --muted: 220 14% 96%;
+    --secondary: 40 8% 94%;
+    --secondary-foreground: 220 13% 9%;
+    --muted: 40 8% 94%;
     --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 84% 5%;
-    --destructive: 0 84% 60%;
+    --accent: 172 62% 47%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --border: 36 10% 88%;
+    --input: 36 10% 88%;
+    --ring: 183 75% 22%;
     --radius: 0.75rem;
   }
 
@@ -42,20 +42,25 @@
 
   body {
     font-family: 'Inter', -apple-system, sans-serif;
-    background-color: #FAFAFA;
+    background-color: #F6F5F2;
     color: #111827;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background: rgba(14, 90, 94, 0.12);
+    color: #111827;
   }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); }
-  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+  ::-webkit-scrollbar-thumb { background: #C8C5BF; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
   /* Focus ring */
   *:focus-visible {
-    outline: 2px solid #2563EB;
+    outline: 2px solid #0E5A5E;
     outline-offset: 2px;
   }
 
@@ -84,8 +89,9 @@
   /* 3D glow text effect (light theme — subtle) */
   .text-glow {
     text-shadow:
-      0 0 40px rgba(37, 99, 235, 0.15),
-      0 0 80px rgba(37, 99, 235, 0.08);
+      0 0 40px rgba(14, 90, 94, 0.10),
+      0 0 80px rgba(14, 90, 94, 0.05),
+      0 4px 12px rgba(0, 0, 0, 0.03);
   }
 
   /* Glass overlay */
@@ -107,7 +113,7 @@
     transform: translate(-50%, -50%);
     width: 600px;
     height: 400px;
-    background: radial-gradient(ellipse, rgba(59,91,255,0.18) 0%, rgba(59,91,255,0.06) 40%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(14,90,94,0.18) 0%, rgba(14,90,94,0.06) 40%, transparent 70%);
     pointer-events: none;
     z-index: 0;
     filter: blur(40px);
@@ -128,7 +134,7 @@
     left: 30%;
     width: 500px;
     height: 500px;
-    background: radial-gradient(circle, rgba(59,91,255,0.12) 0%, transparent 60%);
+    background: radial-gradient(circle, rgba(14,90,94,0.12) 0%, transparent 60%);
     filter: blur(60px);
     animation: orbFloat1 12s ease-in-out infinite;
   }
@@ -139,7 +145,7 @@
     right: 20%;
     width: 400px;
     height: 400px;
-    background: radial-gradient(circle, rgba(59,91,255,0.08) 0%, transparent 55%);
+    background: radial-gradient(circle, rgba(14,90,94,0.08) 0%, transparent 55%);
     filter: blur(50px);
     animation: orbFloat2 15s ease-in-out infinite;
   }
@@ -159,7 +165,7 @@
     left: 25%;
     width: 600px;
     height: 600px;
-    background: radial-gradient(ellipse, rgba(59,91,255,0.14) 0%, transparent 60%);
+    background: radial-gradient(ellipse, rgba(14,90,94,0.14) 0%, transparent 60%);
     filter: blur(80px);
     animation: orbFloat1 14s ease-in-out infinite;
   }
@@ -170,7 +176,7 @@
     right: 15%;
     width: 450px;
     height: 450px;
-    background: radial-gradient(ellipse, rgba(59,91,255,0.08) 0%, transparent 55%);
+    background: radial-gradient(ellipse, rgba(14,90,94,0.08) 0%, transparent 55%);
     filter: blur(60px);
     animation: orbFloat2 18s ease-in-out infinite;
   }

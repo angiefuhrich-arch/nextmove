@@ -11,9 +11,9 @@ const config: Config = {
     extend: {
       colors: {
         border: {
-          DEFAULT: '#E5E7EB',
-          subtle: '#F3F4F6',
-          focus: '#2563EB',
+          DEFAULT: '#E5E3DF',
+          subtle: '#EEEDEA',
+          focus: '#0E5A5E',
         },
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -49,9 +49,9 @@ const config: Config = {
         },
         // Scarsian Design System (light theme v42)
         surface: {
-          DEFAULT: '#FAFAFA',
+          DEFAULT: '#F6F5F2',
           elevated: '#FFFFFF',
-          subdued: '#F3F4F6',
+          subdued: '#EEEDEA',
         },
         ink: {
           DEFAULT: '#111827',
@@ -60,14 +60,16 @@ const config: Config = {
           quaternary: '#9CA3AF',
         },
         divider: {
-          DEFAULT: '#E5E7EB',
-          subtle: '#F3F4F6',
+          DEFAULT: '#E5E3DF',
+          subtle: '#EEEDEA',
         },
         brand: {
-          DEFAULT: '#2563EB',
-          hover: '#1D4ED8',
-          light: '#EFF6FF',
-          muted: '#93C5FD',
+          DEFAULT: '#0E5A5E',
+          hover: '#0A4448',
+          accent: '#2EC4B6',
+          light: '#E6F3F2',
+          muted: '#7EB8B3',
+          ghost: 'rgba(14,90,94,0.06)',
         },
         // Legacy dark theme (backward compat)
         navy: {
@@ -114,9 +116,9 @@ const config: Config = {
           danger: '#EF4444',
           'danger-bg': 'rgba(239,68,68,0.10)',
           'danger-border': 'rgba(239,68,68,0.30)',
-          info: '#2563EB',
-          'info-bg': '#EFF6FF',
-          'info-border': 'rgba(37,99,235,0.25)',
+          info: '#0E5A5E',
+          'info-bg': '#E6F3F2',
+          'info-border': 'rgba(14,90,94,0.25)',
         },
       },
       fontSize: {
@@ -163,17 +165,18 @@ const config: Config = {
         inter: ['Inter', 'sans-serif'],
       },
       boxShadow: {
-        // DS canonical 3-level shadow scale
-        sm:  '0 1px 2px rgba(0,0,0,0.04)',
-        md:  '0 4px 16px rgba(0,0,0,0.06)',
-        lg:  '0 12px 40px rgba(0,0,0,0.10)',
+        // DS canonical 3-level shadow scale (warm dark base)
+        sm:  '0 1px 2px rgba(14,12,8,0.04)',
+        md:  '0 4px 16px rgba(14,12,8,0.06)',
+        lg:  '0 12px 40px rgba(14,12,8,0.10)',
         // Aliases
-        card:         '0 4px 16px rgba(0,0,0,0.06)',
-        'card-hover': '0 12px 40px rgba(0,0,0,0.10)',
-        modal:        '0 12px 40px rgba(0,0,0,0.10)',
-        dropdown:     '0 12px 40px rgba(0,0,0,0.10)',
-        glow:         '0 0 40px rgba(37,99,235,0.18), 0 0 80px rgba(37,99,235,0.10)',
-        brand:        '0 2px 8px rgba(37,99,235,0.30)',
+        card:         '0 4px 16px rgba(14,12,8,0.05)',
+        'card-hover': '0 12px 40px rgba(14,12,8,0.10)',
+        modal:        '0 24px 80px rgba(14,12,8,0.10)',
+        dropdown:     '0 12px 40px rgba(14,12,8,0.10)',
+        search:       '0 2px 16px rgba(14,90,94,0.08)',
+        glow:         '0 0 40px rgba(14,90,94,0.18), 0 0 80px rgba(14,90,94,0.10)',
+        brand:        '0 2px 8px rgba(14,90,94,0.30)',
       },
       transitionDuration: {
         fast:   '100ms',
@@ -223,8 +226,8 @@ const config: Config = {
           '40%': { opacity: '1', transform: 'scale(1)' },
         },
         glowPulse: {
-          '0%, 100%': { textShadow: '0 0 40px rgba(59,91,255,0.24), 0 0 80px rgba(59,91,255,0.16), 0 0 120px rgba(59,91,255,0.08), 0 4px 8px rgba(0,0,0,0.30)' },
-          '50%': { textShadow: '0 0 40px rgba(59,91,255,0.36), 0 0 80px rgba(59,91,255,0.24), 0 0 120px rgba(59,91,255,0.12), 0 4px 8px rgba(0,0,0,0.30)' },
+          '0%, 100%': { textShadow: '0 0 40px rgba(14,90,94,0.12), 0 0 80px rgba(14,90,94,0.06), 0 4px 12px rgba(0,0,0,0.04)' },
+          '50%': { textShadow: '0 0 40px rgba(14,90,94,0.20), 0 0 80px rgba(14,90,94,0.10), 0 4px 12px rgba(0,0,0,0.04)' },
         },
         skeletonPulse: {
           '0%, 100%': { opacity: '0.4' },

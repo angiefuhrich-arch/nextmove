@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic'
 
 // ── Trend sparkline (server-rendered SVG) ────────────────────────────────────
 
-function Sparkline({ points, color = '#2563EB', width = 680, height = 80 }: {
+function Sparkline({ points, color = '#0E5A5E', width = 680, height = 80 }: {
   points: number[]; color?: string; width?: number; height?: number
 }) {
   if (points.length < 2) return null
