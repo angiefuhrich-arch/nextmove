@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { PipelineLoader } from '@/components/scarsian/PipelineLoader'
 import type { PipelineStatus, StepLogEntry } from '@/lib/pipeline/runner'
@@ -8,7 +8,7 @@ import type { PipelineStatus, StepLogEntry } from '@/lib/pipeline/runner'
 const TERMINAL: PipelineStatus[] = ['completed', 'insufficient_evidence', 'failed']
 const POLL_INTERVAL = 2000
 
-export default function BuildingPage() {
+function BuildingPageInner() {
   const { entitySlug } = useParams<{ entitySlug: string }>()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -59,5 +59,13 @@ export default function BuildingPage() {
       status={status}
       stepLog={stepLog}
     />
+  )
+}
+
+export default function BuildingPage() {
+  return (
+    <Suspense fallback={<PipelineLoader entityName="" status="queued" stepLog={[]} />}>
+      <BuildingPageInner />
+    </Suspense>
   )
 }
