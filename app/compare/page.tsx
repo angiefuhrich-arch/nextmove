@@ -158,7 +158,7 @@ export default function ComparePage() {
                   <th className="px-4 py-3 text-label uppercase tracking-widest text-ink-tertiary font-semibold w-36">Dimension</th>
                   {selected.map(c => (
                     <th key={c.slug} className="px-4 py-3 text-center">
-                      <button onClick={() => router.push(`/report/${c.slug}`)} className="hover:text-brand transition-colors duration-fast">
+                      <button onClick={() => router.push(`/brief/${c.slug}`)} className="hover:text-brand transition-colors duration-fast">
                         <p className="text-body-sm font-bold text-ink">{c.name}</p>
                         <p className="text-caption text-ink-tertiary">{c.industry}</p>
                       </button>

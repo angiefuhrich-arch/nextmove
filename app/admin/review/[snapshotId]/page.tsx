@@ -1,178 +1,141 @@
 'use client'
+
 import { use, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { ArrowLeft, CheckCircle2, XCircle, Edit2, Save, X, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { AdminLayout } from '@/components/layout/admin-layout'
+import {
+  ArrowLeft, CheckCircle2, XCircle, Edit2, Save, X, AlertTriangle,
+  ChevronDown, ChevronUp, ExternalLink, Shield,
+} from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@supabase/ssr'
+import { cn } from '@/lib/utils'
 
-interface SignalScore {
+interface SnapshotData {
   id: string
-  signal_name: string
-  score: number
-  confidence: number
-  reasoning: string
-  review_status: string
-  admin_override_score: number | null
-  admin_notes: string | null
-}
-
-interface Source {
-  id: string
-  source_type: string
-  source_title: string
-  source_url: string
-  reliability_score: number
-  published_date: string | null
-  raw_text: string
-}
-
-interface Snapshot {
-  id: string
+  entity_id: string
   status: string
   scarsian_score: number
-  career_growth_score: number
-  career_risk_score: number
-  market_value_score: number
-  career_fit_score: number
-  gfi_score: number
-  career_alpha: number
+  cgs_score: number | null
+  crs_score: number | null
+  mvs_score: number | null
+  cfs_score: number | null
+  gfi_score: number | null
   confidence_score: number
-  verdict: string
-  analyst_note: string
+  verdict: string | null
+  analyst_note: string | null
   created_at: string
   approved_at: string | null
+  insufficient_data: boolean | null
 }
 
-const SIGNAL_LABELS: Record<string, string> = {
-  // CGS
-  promotion_velocity: 'Promotion Velocity',
-  skill_transferability: 'Skill Transferability',
-  network_multiplier: 'Network Multiplier',
-  // CRS
-  layoff_resilience: 'Layoff Resilience',
-  reputation_safety: 'Reputation Safety',
-  financial_stability: 'Financial Stability',
-  // MVS
-  badge_premium: 'Badge Premium',
-  talent_magnetism: 'Talent Magnetism',
-  sector_optionality: 'Sector Optionality',
-  // CFS
-  culture_alignment: 'Culture Alignment',
-  // GFI
-  communication_accessibility: 'Communication Accessibility',
-  visa_accessibility: 'Visa Accessibility',
-  international_leadership: 'International Leadership',
-  expat_retention: 'Expat Retention',
-  language_accessibility: 'Language Accessibility',
-  regional_autonomy: 'Regional Autonomy',
-  // Adjustment
-  momentum_score: 'Momentum Score (50=neutral)',
-  volatility_score: 'Volatility Score (0=stable)',
-  // Confidence inputs
-  evidence_coverage: 'Evidence Coverage',
-  data_freshness: 'Data Freshness',
-  cross_source_agreement: 'Cross-Source Agreement',
-  sample_reliability: 'Sample Reliability',
-  // Legacy labels (kept for backward compat)
-  financial_runway: 'Financial Runway',
-  ladder_speed: 'Ladder Speed',
-  skill_depreciation_risk: 'Skill Depreciation Risk',
-  layoff_convexity: 'Layoff Convexity',
-  reputation_stain_risk: 'Reputation Stain Risk',
-  cultural_velocity_match: 'Cultural Velocity Match',
-  global_mobility_index: 'Global Mobility Index',
-  english_working_language: 'English Working Language',
-  visa_sponsorship_history: 'Visa Sponsorship History',
-  international_leadership_ratio: 'International Leadership',
-  expat_retention_rate: 'Expat Retention Rate',
-  cantonese_requirement_level: 'Cantonese Requirement',
-  regional_office_culture: 'Regional Office Culture',
+interface SignalItem {
+  id: string
+  signal_name: string | null
+  category: string
+  direction: string
+  magnitude: number
+  confidence: number | null
+  explanation: string
+  created_at: string
 }
 
-const SIGNAL_GROUPS: Record<string, string[]> = {
-  'Career Growth Score (CGS)': ['promotion_velocity', 'skill_transferability', 'network_multiplier'],
-  'Career Risk Score (CRS)': ['layoff_resilience', 'reputation_safety', 'financial_stability'],
-  'Market Value Score (MVS)': ['badge_premium', 'talent_magnetism', 'sector_optionality'],
-  'Career Fit Score (CFS)': ['culture_alignment'],
-  'Global Fit Index (GFI)': ['communication_accessibility', 'visa_accessibility', 'international_leadership', 'expat_retention', 'language_accessibility', 'regional_autonomy'],
-  'Adjustment Layer': ['momentum_score', 'volatility_score'],
-  'Confidence Inputs': ['evidence_coverage', 'data_freshness', 'cross_source_agreement', 'sample_reliability'],
+interface EvidenceItem {
+  id: string
+  evidence_type: string
+  content_summary: string | null
+  source_url: string | null
+  source_title: string | null
+  source_type: string
+  evidence_date: string | null
+  collected_at: string
 }
 
-function ScoreBar({ score, confidence }: { score: number; confidence: number }) {
-  const color = score >= 70 ? 'bg-green-500' : score >= 45 ? 'bg-amber-400' : 'bg-red-400'
+interface EntityData {
+  name: string
+  slug: string
+  metadata: Record<string, string> | null
+}
+
+const SCORE_DIMS: Array<{ key: keyof SnapshotData; label: string }> = [
+  { key: 'cgs_score', label: 'Culture & Growth' },
+  { key: 'crs_score', label: 'Comp & Retention' },
+  { key: 'mvs_score', label: 'Mission & Vision' },
+  { key: 'cfs_score', label: 'Career Fit' },
+  { key: 'gfi_score', label: 'GFI' },
+]
+
+function ScoreBar({ score }: { score: number }) {
+  const colorClass = score >= 70 ? 'bg-status-success' : score >= 45 ? 'bg-status-warning' : 'bg-status-danger'
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${score}%` }} />
-        </div>
-        <span className="text-sm font-bold text-slate-900 w-8 text-right">{score}</span>
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-1.5 bg-surface-subdued rounded-full overflow-hidden">
+        <div className={cn('h-full rounded-full transition-all', colorClass)} style={{ width: `${score}%` }} />
       </div>
-      <div className="flex items-center gap-1">
-        <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-300 rounded-full" style={{ width: `${confidence}%` }} />
-        </div>
-        <span className="text-xs text-slate-400">{confidence}% conf</span>
-      </div>
+      <span className="text-body-sm font-bold text-ink w-8 text-right tabular-nums">{score}</span>
     </div>
   )
+}
+
+function statusClasses(status: string) {
+  if (status === 'approved') return 'bg-status-success-bg text-status-success border-status-success/20'
+  if (status === 'rejected') return 'bg-status-danger-bg text-status-danger border-status-danger/20'
+  return 'bg-status-warning-bg text-status-warning border-status-warning/20'
 }
 
 export default function ReviewPage({ params }: { params: Promise<{ snapshotId: string }> }) {
   const { snapshotId } = use(params)
   const router = useRouter()
 
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
-  const [signals, setSignals] = useState<SignalScore[]>([])
-  const [sources, setSources] = useState<Source[]>([])
-  const [companyName, setCompanyName] = useState('')
-  const [companySlug, setCompanySlug] = useState('')
+  const [snapshot, setSnapshot] = useState<SnapshotData | null>(null)
+  const [entity, setEntity] = useState<EntityData | null>(null)
+  const [signals, setSignals] = useState<SignalItem[]>([])
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([])
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
   const [editingNote, setEditingNote] = useState(false)
   const [note, setNote] = useState('')
-  const [editingScore, setEditingScore] = useState<string | null>(null)
-  const [overrideValue, setOverrideValue] = useState('')
-  const [overrideNotes, setOverrideNotes] = useState('')
-  const [showSources, setShowSources] = useState(false)
+  const [showEvidence, setShowEvidence] = useState(false)
   const [error, setError] = useState('')
 
-  const load = useCallback(async () => {
-    const supabase = createClient()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
 
+  const load = useCallback(async () => {
     const { data: snap } = await supabase
-      .from('company_score_snapshots')
-      .select('*, companies(name, slug)')
+      .from('scarsian_snapshots')
+      .select('*')
       .eq('id', snapshotId)
       .single()
 
     if (!snap) { setLoading(false); return }
-
-    const company = snap.companies as { name: string; slug: string } | null
-    setCompanyName(company?.name ?? '')
-    setCompanySlug(company?.slug ?? '')
-    setSnapshot(snap as Snapshot)
+    setSnapshot(snap as SnapshotData)
     setNote(snap.analyst_note ?? '')
 
-    const { data: sigs } = await supabase
-      .from('company_signal_scores')
-      .select('*')
-      .eq('snapshot_id', snapshotId)
-      .order('signal_name')
+    const { data: entityData } = await supabase
+      .from('entities')
+      .select('name, slug, metadata')
+      .eq('id', snap.entity_id)
+      .single()
+    if (entityData) setEntity(entityData as EntityData)
 
-    setSignals(sigs ?? [])
+    const [{ data: sigs }, { data: evs }] = await Promise.all([
+      supabase.from('intelligence_signals')
+        .select('id,signal_name,category,direction,magnitude,confidence,explanation,created_at')
+        .eq('entity_id', snap.entity_id)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase.from('evidence_records')
+        .select('id,evidence_type,content_summary,source_url,source_title,source_type,evidence_date,collected_at')
+        .eq('entity_id', snap.entity_id)
+        .order('collected_at', { ascending: false })
+        .limit(30),
+    ])
 
-    if (snap.company_id) {
-      const { data: srcs } = await supabase
-        .from('company_sources')
-        .select('*')
-        .eq('company_id', snap.company_id)
-        .order('reliability_score', { ascending: false })
-      setSources(srcs ?? [])
-    }
-
+    setSignals((sigs ?? []) as SignalItem[])
+    setEvidence((evs ?? []) as EvidenceItem[])
     setLoading(false)
   }, [snapshotId])
 
@@ -182,12 +145,17 @@ export default function ReviewPage({ params }: { params: Promise<{ snapshotId: s
     setActing(true)
     setError('')
     try {
-      const res = await fetch(`/api/admin/snapshots/${snapshotId}`, {
+      const res = await fetch(`/api/admin/briefs/${snapshotId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, analystNote: note || undefined }),
       })
-      if (!res.ok) { setError('Action failed'); setActing(false); return }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? 'Action failed')
+        setActing(false)
+        return
+      }
       router.push('/admin')
     } catch {
       setError('Network error')
@@ -196,7 +164,7 @@ export default function ReviewPage({ params }: { params: Promise<{ snapshotId: s
   }
 
   const saveNote = async () => {
-    const res = await fetch(`/api/admin/snapshots/${snapshotId}`, {
+    const res = await fetch(`/api/admin/briefs/${snapshotId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'update_note', note }),
@@ -204,154 +172,151 @@ export default function ReviewPage({ params }: { params: Promise<{ snapshotId: s
     if (res.ok) setEditingNote(false)
   }
 
-  const saveOverride = async (scoreId: string) => {
-    const val = parseInt(overrideValue)
-    if (isNaN(val) || val < 0 || val > 100) return
-    const res = await fetch(`/api/admin/scores/${scoreId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ admin_override_score: val, admin_notes: overrideNotes }),
-    })
-    if (res.ok) {
-      setEditingScore(null)
-      setSignals(prev => prev.map(s => s.id === scoreId
-        ? { ...s, admin_override_score: val, admin_notes: overrideNotes, review_status: 'overridden' }
-        : s
-      ))
-    }
-  }
-
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64 text-slate-400 text-sm">Loading review...</div>
-      </DashboardLayout>
+      <AdminLayout activePath="/admin">
+        <div className="flex items-center justify-center h-64 text-ink-tertiary text-body-sm">Loading…</div>
+      </AdminLayout>
     )
   }
 
   if (!snapshot) {
     return (
-      <DashboardLayout>
-        <div className="text-slate-500 text-sm">Report not found.</div>
-      </DashboardLayout>
+      <AdminLayout activePath="/admin">
+        <div className="text-ink-tertiary text-body-sm">Intelligence Brief not found.</div>
+      </AdminLayout>
     )
   }
 
   const isDraft = snapshot.status === 'draft'
-  const verdictColor = snapshot.verdict === 'strong' ? 'text-green-600 bg-green-50 border-green-200'
-    : snapshot.verdict === 'no-go' ? 'text-red-600 bg-red-50 border-red-200'
-    : 'text-amber-600 bg-amber-50 border-amber-200'
+  const confidencePct = Math.round((snapshot.confidence_score ?? 0) * 100)
+  const categories = Array.from(new Set(signals.map(s => s.category)))
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl space-y-6">
+    <AdminLayout activePath="/admin">
+      <div className="max-w-[860px] space-y-6">
+
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <Link href="/admin" className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-3">
-              <ArrowLeft size={14} />
+            <Link href="/admin" className="flex items-center gap-1.5 text-caption text-ink-tertiary hover:text-brand transition-colors duration-fast mb-4">
+              <ArrowLeft size={13} />
               Back to Admin
             </Link>
-            <h1 className="text-2xl font-bold text-slate-900">{companyName}</h1>
-            <div className="flex items-center gap-3 mt-1">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${verdictColor}`}>
-                {snapshot.verdict.toUpperCase()}
+            <h1 className="text-title-lg text-ink font-bold">{entity?.name ?? 'Unknown employer'}</h1>
+            <div className="flex items-center gap-3 mt-2">
+              {entity?.metadata?.industry && (
+                <span className="text-caption text-ink-tertiary">{entity.metadata.industry}</span>
+              )}
+              <span className={cn('text-caption font-semibold px-2 py-0.5 rounded-full border', statusClasses(snapshot.status))}>
+                {snapshot.status}
               </span>
-              <span className="text-xs text-slate-400">
-                {snapshot.status === 'draft' ? 'Draft — pending review' :
-                  snapshot.status === 'approved' ? `Approved ${snapshot.approved_at ? new Date(snapshot.approved_at).toLocaleDateString() : ''}` :
-                  'Rejected'}
-              </span>
+              {snapshot.approved_at && (
+                <span className="text-caption text-ink-quaternary">
+                  Approved {new Date(snapshot.approved_at).toLocaleDateString()}
+                </span>
+              )}
             </div>
           </div>
+
           {isDraft && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-2">
               <button
                 onClick={() => handleAction('reject')}
                 disabled={acting}
-                className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+                className="flex items-center gap-1.5 h-9 px-4 border border-status-danger/30 text-status-danger rounded-lg text-button font-medium hover:bg-status-danger-bg disabled:opacity-50 transition-colors duration-fast"
               >
-                <XCircle size={15} />
+                <XCircle size={14} />
                 Reject
               </button>
               <button
                 onClick={() => handleAction('approve')}
                 disabled={acting}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
+                className="flex items-center gap-1.5 h-9 px-4 bg-status-success text-white rounded-lg text-button font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity duration-fast"
               >
-                <CheckCircle2 size={15} />
+                <CheckCircle2 size={14} />
                 Approve & Publish
               </button>
             </div>
           )}
-          {!isDraft && companySlug && (
+
+          {!isDraft && entity?.slug && (
             <Link
-              href={`/company/${companySlug}`}
-              className="text-sm text-slate-500 hover:text-slate-900 underline"
+              href={`/brief/${entity.slug}`}
+              className="flex items-center gap-1.5 text-caption text-brand hover:underline mt-2"
             >
-              View published report →
+              View published Brief
+              <ExternalLink size={12} />
             </Link>
           )}
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          <div className="bg-status-danger-bg border border-status-danger/20 rounded-xl px-4 py-3 text-body-sm text-status-danger flex items-center gap-2">
+            <AlertTriangle size={14} />
             {error}
           </div>
         )}
 
         {/* Score summary */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-900">Calculated Scores</h2>
-            {snapshot.confidence_score < 50 && (
-              <span className="text-xs font-semibold bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded-full flex items-center gap-1">
+        <div className="bg-surface-elevated border border-divider rounded-xl p-6 shadow-card">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-body-sm font-semibold text-ink">Scarsian Index</h2>
+            {snapshot.insufficient_data && (
+              <span className="text-caption font-semibold bg-status-danger-bg text-status-danger border border-status-danger/20 px-2.5 py-1 rounded-full flex items-center gap-1">
                 <AlertTriangle size={11} />
-                Insufficient Data — score will not display publicly
+                Insufficient Data — will not publish
               </span>
             )}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            {[
-              { label: 'Scarsian Index', value: snapshot.scarsian_score, highlight: true },
-              { label: 'Career Growth (CGS)', value: snapshot.career_growth_score },
-              { label: 'Career Risk (CRS)', value: snapshot.career_risk_score },
-              { label: 'Market Value (MVS)', value: snapshot.market_value_score },
-              { label: 'Career Fit (CFS)', value: snapshot.career_fit_score },
-              { label: 'GFI Score', value: snapshot.gfi_score },
-              { label: 'Career Alpha', value: snapshot.career_alpha, signed: true },
-              { label: 'Confidence', value: snapshot.confidence_score, pct: true },
-            ].map(({ label, value, highlight, signed, pct }) => (
-              <div key={label} className={`rounded-lg p-3 ${highlight ? 'bg-slate-900 text-white' : 'bg-slate-50'}`}>
-                <p className={`text-xs mb-1 ${highlight ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-                <p className={`text-xl font-bold ${highlight ? 'text-white' : 'text-slate-900'}`}>
-                  {snapshot.confidence_score < 50 && highlight
-                    ? 'N/A'
-                    : `${signed && value > 0 ? '+' : ''}${value}${pct ? '%' : ''}`}
-                </p>
-              </div>
-            ))}
+
+          {/* Main score */}
+          <div className="flex items-center gap-6 mb-6">
+            <div className="text-[56px] font-bold text-ink leading-none tabular-nums">
+              {snapshot.scarsian_score}
+            </div>
+            <div>
+              <div className="text-body-sm font-semibold text-ink mb-1">{snapshot.verdict ?? 'No verdict'}</div>
+              <div className="text-caption text-ink-tertiary">Evidence Confidence: {confidencePct}%</div>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 flex items-center gap-1">
-            <AlertTriangle size={11} />
-            All scores are calculated by the backend formula. AI never computes the final score. Admin overrides are applied before recalculation on approval.
+
+          {/* Dimension bars */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {SCORE_DIMS.map(({ key, label }) => {
+              const raw = snapshot[key] as number | null
+              if (raw === null) return null
+              return (
+                <div key={key}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-caption text-ink-tertiary">{label}</span>
+                  </div>
+                  <ScoreBar score={Math.round(raw)} />
+                </div>
+              )
+            })}
+          </div>
+
+          <p className="text-caption text-ink-quaternary mt-5 flex items-center gap-1.5">
+            <Shield size={11} />
+            Scores calculated by the backend formula engine. AI interprets structured intelligence only — it never computes scores directly.
           </p>
         </div>
 
         {/* Analyst Note */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="bg-surface-elevated border border-divider rounded-xl p-6 shadow-card">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-900">Analyst Note</h2>
+            <h2 className="text-body-sm font-semibold text-ink">Analyst Note</h2>
             {!editingNote ? (
-              <button onClick={() => setEditingNote(true)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900">
+              <button onClick={() => setEditingNote(true)} className="flex items-center gap-1 text-caption text-ink-tertiary hover:text-brand transition-colors duration-fast">
                 <Edit2 size={12} /> Edit
               </button>
             ) : (
-              <div className="flex items-center gap-2">
-                <button onClick={saveNote} className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
+              <div className="flex items-center gap-3">
+                <button onClick={saveNote} className="flex items-center gap-1 text-caption text-status-success hover:opacity-80 font-medium">
                   <Save size={12} /> Save
                 </button>
-                <button onClick={() => setEditingNote(false)} className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600">
+                <button onClick={() => setEditingNote(false)} className="flex items-center gap-1 text-caption text-ink-tertiary hover:text-ink">
                   <X size={12} /> Cancel
                 </button>
               </div>
@@ -362,144 +327,93 @@ export default function ReviewPage({ params }: { params: Promise<{ snapshotId: s
               value={note}
               onChange={e => setNote(e.target.value)}
               rows={4}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full border border-divider rounded-xl px-3 py-2.5 text-body-sm text-ink bg-surface-subdued focus:outline-none focus:border-brand transition-colors"
+              placeholder="Add analyst note…"
             />
           ) : (
-            <p className="text-sm text-slate-600 leading-relaxed">{note || 'No analyst note.'}</p>
+            <p className="text-body-sm text-ink-secondary leading-relaxed">{note || 'No analyst note.'}</p>
           )}
         </div>
 
-        {/* Signal Scores */}
-        {Object.entries(SIGNAL_GROUPS).map(([groupName, signalNames]) => {
-          const groupSignals = signals.filter(s => signalNames.includes(s.signal_name))
-          if (groupSignals.length === 0) return null
-          return (
-            <div key={groupName} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100">
-                <h2 className="text-sm font-semibold text-slate-900">{groupName}</h2>
-              </div>
-              <div className="divide-y divide-slate-50">
-                {groupSignals.map(sig => {
-                  const effectiveScore = sig.review_status === 'overridden' && sig.admin_override_score != null
-                    ? sig.admin_override_score
-                    : sig.score
-                  const isEditing = editingScore === sig.id
-
-                  return (
-                    <div key={sig.id} className="px-6 py-4">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-medium text-slate-900">
-                              {SIGNAL_LABELS[sig.signal_name] ?? sig.signal_name}
-                            </span>
-                            {sig.review_status === 'overridden' && (
-                              <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
-                                Admin override: {sig.admin_override_score} (AI: {sig.score})
-                              </span>
-                            )}
-                          </div>
-                          <ScoreBar score={effectiveScore} confidence={sig.confidence} />
-                          <p className="text-xs text-slate-400 mt-2 leading-relaxed">{sig.reasoning}</p>
-                          {sig.admin_notes && (
-                            <p className="text-xs text-blue-600 mt-1 italic">Admin: {sig.admin_notes}</p>
-                          )}
-                        </div>
-                        {isDraft && !isEditing && (
-                          <button
-                            onClick={() => {
-                              setEditingScore(sig.id)
-                              setOverrideValue(String(effectiveScore))
-                              setOverrideNotes(sig.admin_notes ?? '')
-                            }}
-                            className="shrink-0 text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1 mt-1"
-                          >
-                            <Edit2 size={11} /> Override
-                          </button>
-                        )}
-                      </div>
-                      {isEditing && (
-                        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-blue-800 w-24">New score (0–100)</label>
-                            <input
-                              type="number"
-                              min={0} max={100}
-                              value={overrideValue}
-                              onChange={e => setOverrideValue(e.target.value)}
-                              className="w-20 border border-blue-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-blue-800 w-24">Admin note</label>
-                            <input
-                              type="text"
-                              value={overrideNotes}
-                              onChange={e => setOverrideNotes(e.target.value)}
-                              placeholder="Reason for override..."
-                              className="flex-1 border border-blue-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => saveOverride(sig.id)}
-                              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded font-medium hover:bg-blue-700"
-                            >
-                              Save Override
-                            </button>
-                            <button
-                              onClick={() => setEditingScore(null)}
-                              className="text-xs text-slate-500 hover:text-slate-700"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+        {/* Signals by category */}
+        {signals.length > 0 && (
+          <div className="bg-surface-elevated border border-divider rounded-xl overflow-hidden shadow-card">
+            <div className="px-5 py-4 border-b border-divider flex items-center justify-between">
+              <h2 className="text-body-sm font-semibold text-ink">Intelligence Signals</h2>
+              <span className="text-caption text-ink-tertiary">{signals.length} signals</span>
             </div>
-          )
-        })}
+            {categories.map(cat => {
+              const catSignals = signals.filter(s => s.category === cat)
+              return (
+                <div key={cat}>
+                  <div className="px-5 py-2 bg-surface-subdued/50 border-b border-divider">
+                    <span className="text-label uppercase tracking-widest text-ink-tertiary font-semibold">{cat}</span>
+                  </div>
+                  {catSignals.map(sig => {
+                    const dirColor = sig.direction === 'positive' ? 'text-status-success' : sig.direction === 'negative' ? 'text-status-danger' : 'text-status-warning'
+                    const dotColor = sig.direction === 'positive' ? 'bg-status-success' : sig.direction === 'negative' ? 'bg-status-danger' : 'bg-status-warning'
+                    return (
+                      <div key={sig.id} className="flex items-start gap-3 px-5 py-3 border-b border-divider last:border-0 hover:bg-surface-subdued/30 transition-colors">
+                        <div className={cn('w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0', dotColor)} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-body-sm text-ink-secondary leading-snug">{sig.explanation}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {sig.signal_name && <span className="text-caption text-ink-quaternary">{sig.signal_name}</span>}
+                            <span className="text-caption text-ink-quaternary">
+                              {new Date(sig.created_at).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                        <span className={cn('text-body-sm font-bold tabular-nums flex-shrink-0', dirColor)}>
+                          {sig.magnitude}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
-        {/* Sources */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        {/* Evidence records (collapsible) */}
+        <div className="bg-surface-elevated border border-divider rounded-xl overflow-hidden shadow-card">
           <button
-            onClick={() => setShowSources(!showSources)}
-            className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 text-left"
+            onClick={() => setShowEvidence(!showEvidence)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-subdued/30 transition-colors text-left"
           >
-            <h2 className="text-sm font-semibold text-slate-900">Evidence Sources ({sources.length})</h2>
-            {showSources ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+            <h2 className="text-body-sm font-semibold text-ink">Evidence Records ({evidence.length})</h2>
+            {showEvidence ? <ChevronUp size={15} className="text-ink-quaternary" /> : <ChevronDown size={15} className="text-ink-quaternary" />}
           </button>
-          {showSources && (
-            <div className="border-t border-slate-100 divide-y divide-slate-50">
-              {sources.length === 0 ? (
-                <p className="px-6 py-4 text-sm text-slate-400">No sources recorded.</p>
-              ) : sources.map(src => (
-                <div key={src.id} className="px-6 py-4">
+          {showEvidence && (
+            <div className="border-t border-divider divide-y divide-divider">
+              {evidence.length === 0 ? (
+                <p className="px-5 py-6 text-body-sm text-ink-tertiary">No evidence records.</p>
+              ) : evidence.map(ev => (
+                <div key={ev.id} className="px-5 py-3.5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                          {src.source_type}
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-label px-2 py-0.5 rounded-full bg-surface-subdued text-ink-tertiary border border-divider capitalize">
+                          {ev.evidence_type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-xs text-slate-400">{src.reliability_score}/100 reliability</span>
-                        {src.published_date && (
-                          <span className="text-xs text-slate-400">{src.published_date}</span>
-                        )}
+                        <span className="text-caption text-ink-quaternary">
+                          {ev.evidence_date
+                            ? new Date(ev.evidence_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                            : new Date(ev.collected_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        </span>
                       </div>
-                      <a
-                        href={src.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-blue-600 hover:underline truncate block"
-                      >
-                        {src.source_title}
-                      </a>
-                      {src.raw_text && (
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">{src.raw_text}</p>
+                      <p className="text-body-sm text-ink-secondary leading-snug">{ev.content_summary}</p>
+                      {ev.source_url && (
+                        <a
+                          href={ev.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-caption text-brand hover:underline mt-1"
+                        >
+                          <ExternalLink size={10} />
+                          {ev.source_title ?? ev.source_url}
+                        </a>
                       )}
                     </div>
                   </div>
@@ -511,26 +425,26 @@ export default function ReviewPage({ params }: { params: Promise<{ snapshotId: s
 
         {/* Bottom approve/reject */}
         {isDraft && (
-          <div className="flex items-center justify-end gap-3 pt-2 pb-8">
+          <div className="flex items-center justify-end gap-3 pt-2 pb-10">
             <button
               onClick={() => handleAction('reject')}
               disabled={acting}
-              className="flex items-center gap-2 px-5 py-2.5 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 h-10 px-5 border border-status-danger/30 text-status-danger rounded-xl text-button font-medium hover:bg-status-danger-bg disabled:opacity-50 transition-colors duration-fast"
             >
-              <XCircle size={15} />
-              Reject Report
+              <XCircle size={14} />
+              Reject
             </button>
             <button
               onClick={() => handleAction('approve')}
               disabled={acting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
+              className="flex items-center gap-1.5 h-10 px-5 bg-status-success text-white rounded-xl text-button font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity duration-fast"
             >
-              <CheckCircle2 size={15} />
+              <CheckCircle2 size={14} />
               Approve & Publish
             </button>
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   )
 }
