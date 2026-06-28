@@ -1,10 +1,18 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, X } from 'lucide-react'
+import { Search, X, Loader2 } from 'lucide-react'
 import { companies } from '@/lib/data/mockData'
+
+interface SearchResult {
+  id: string
+  slug: string
+  name: string
+  industry?: string
+  indexScore?: number
+}
 
 interface CommandPaletteProps {
   open: boolean
@@ -13,39 +21,113 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [isLaunching, setIsLaunching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
-  const filtered = companies.filter(c =>
-    c.name.toLowerCase().includes(query.toLowerCase()) ||
-    c.industry.toLowerCase().includes(query.toLowerCase())
-  )
+  // Local mock fallback for instant results while API call is in-flight
+  const localMatches = companies
+    .filter(c =>
+      c.name.toLowerCase().includes(query.toLowerCase()) ||
+      c.industry.toLowerCase().includes(query.toLowerCase())
+    )
+    .map(c => ({ id: c.id, slug: c.id, name: c.name, industry: c.industry, indexScore: c.indexScore }))
+
+  const displayResults = results.length > 0 ? results : (query.length >= 2 ? localMatches : [])
+
+  const searchAPI = useCallback(async (q: string) => {
+    if (q.length < 2) { setResults([]); return }
+    setIsSearching(true)
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.hit && data.results) {
+        setResults(data.results.map((r: { id: string; slug: string; name: string; industry?: string }) => ({
+          ...r,
+          indexScore: companies.find(c => c.id === r.slug)?.indexScore,
+        })))
+      } else {
+        setResults([])
+      }
+    } catch { /* use local fallback */ }
+    finally { setIsSearching(false) }
+  }, [])
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => searchAPI(query), 300)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [query, searchAPI])
 
   useEffect(() => { setSelectedIndex(0) }, [query])
   useEffect(() => {
     if (open && inputRef.current) inputRef.current.focus()
-    if (!open) setQuery('')
+    if (!open) { setQuery(''); setResults([]) }
   }, [open])
+
+  const navigate = useCallback(async (slug: string, name: string) => {
+    onClose()
+    // Check if it's a cached entity (mock data)
+    const isCached = companies.some(c => c.id === slug)
+    if (isCached) {
+      router.push(`/brief/${slug}`)
+      return
+    }
+    // No cache → start pipeline
+    setIsLaunching(true)
+    try {
+      const res = await fetch('/api/pipeline/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entitySlug: slug, entityName: name }),
+      })
+      const data = await res.json()
+      router.push(`/building/${slug}?runId=${data.runId}`)
+    } catch {
+      router.push(`/building/${slug}`)
+    }
+  }, [router, onClose])
+
+  const handleSubmitQuery = useCallback(async () => {
+    if (!query.trim()) return
+    onClose()
+    const slug = query.trim().toLowerCase().replace(/\s+/g, '-')
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`)
+    const data = await res.json().catch(() => ({ hit: false }))
+    if (data.hit && data.results?.[0]) {
+      router.push(`/brief/${data.results[0].slug}`)
+    } else {
+      const startRes = await fetch('/api/pipeline/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entitySlug: slug, entityName: query.trim() }),
+      })
+      const startData = await startRes.json()
+      router.push(`/building/${slug}?runId=${startData.runId}`)
+    }
+  }, [query, router, onClose])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex(p => (p + 1) % Math.max(filtered.length, 1))
+      setSelectedIndex(p => (p + 1) % Math.max(displayResults.length, 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelectedIndex(p => (p - 1 + Math.max(filtered.length, 1)) % Math.max(filtered.length, 1))
-    } else if (e.key === 'Enter' && filtered[selectedIndex]) {
-      router.push(`/report/${filtered[selectedIndex].id}`)
-      onClose()
+      setSelectedIndex(p => (p - 1 + Math.max(displayResults.length, 1)) % Math.max(displayResults.length, 1))
+    } else if (e.key === 'Enter') {
+      if (displayResults[selectedIndex]) {
+        navigate(displayResults[selectedIndex].slug, displayResults[selectedIndex].name)
+      } else if (query.trim().length >= 2) {
+        handleSubmitQuery()
+      }
     } else if (e.key === 'Escape') {
       onClose()
     }
-  }
-
-  const navigate = (id: string) => {
-    router.push(`/report/${id}`)
-    onClose()
   }
 
   return (
@@ -69,14 +151,17 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             className="relative w-full max-w-[640px] mx-4 bg-navy-dark border border-navy-light rounded-3xl shadow-modal overflow-hidden"
           >
             <div className="flex items-center gap-3 px-5 py-4 border-b border-navy-light">
-              <Search className="w-5 h-5 text-white/50 flex-shrink-0" />
+              {isSearching || isLaunching
+                ? <Loader2 className="w-5 h-5 text-blue-400 flex-shrink-0 animate-spin" />
+                : <Search className="w-5 h-5 text-white/50 flex-shrink-0" />
+              }
               <input
                 ref={inputRef}
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search for a company..."
+                placeholder="Search any employer…"
                 className="flex-1 bg-transparent text-white text-lg placeholder-white/30 outline-none"
               />
               <button onClick={onClose} className="p-1 rounded-md hover:bg-white/10 transition-colors">
@@ -85,10 +170,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             </div>
 
             <div className="max-h-[400px] overflow-y-auto p-2">
-              {filtered.length > 0 ? filtered.map((company, i) => (
+              {displayResults.length > 0 ? displayResults.map((company, i) => (
                 <button
-                  key={company.id}
-                  onClick={() => navigate(company.id)}
+                  key={company.slug}
+                  onClick={() => navigate(company.slug, company.name)}
                   onMouseEnter={() => setSelectedIndex(i)}
                   className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-150 ${
                     i === selectedIndex
@@ -101,15 +186,29 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                   </div>
                   <div className="flex-1 text-left">
                     <div className="text-sm font-semibold text-white">{company.name}</div>
-                    <div className="text-xs text-white/50">{company.industry}</div>
+                    {company.industry && <div className="text-xs text-white/50">{company.industry}</div>}
                   </div>
-                  <div className="text-sm font-bold text-white">{company.indexScore}</div>
+                  {company.indexScore && (
+                    <div className="text-sm font-bold text-white">{company.indexScore}</div>
+                  )}
                 </button>
-              )) : (
+              )) : query.length >= 2 ? (
+                <button
+                  onClick={handleSubmitQuery}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-white/[0.06] border border-dashed border-navy-light transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                    <Search className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-medium text-white">Build intelligence for &quot;{query}&quot;</div>
+                    <div className="text-xs text-white/40">No cached brief found — run on-demand pipeline (~20s)</div>
+                  </div>
+                </button>
+              ) : (
                 <div className="flex flex-col items-center gap-3 py-12 text-white/50">
-                  <Search className="w-12 h-12 text-white/30" />
-                  <p className="text-base">No companies found</p>
-                  <p className="text-sm text-white/30">Try a different search term</p>
+                  <Search className="w-10 h-10 text-white/20" />
+                  <p className="text-sm">Search any company, startup, or employer</p>
                 </div>
               )}
             </div>
