@@ -15,7 +15,7 @@ export async function hasUnlockedBrief(userId: string, entityId: string): Promis
 export async function unlockBriefForUser(userId: string, entityId: string): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()
 
-  // Check if already unlocked (idempotent)
+  // Check if already unlocked — unique constraint also protects against races
   const { data: existing } = await admin
     .from('brief_unlocks')
     .select('id')
@@ -24,33 +24,32 @@ export async function unlockBriefForUser(userId: string, entityId: string): Prom
     .maybeSingle()
   if (existing) return { ok: true }
 
-  // Get current credit balance
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('credits')
-    .eq('id', userId)
-    .single()
-  const balance = (profile?.credits ?? 0) as number
-  if (balance < 1) return { ok: false, error: 'insufficient_credits' }
-
-  const newBalance = balance - 1
-
-  // Deduct credit and record unlock atomically
+  // Use deduct_credits RPC: row-locks profiles, handles idempotency, inserts credit_transaction
   const idempotencyKey = `unlock_${userId}_${entityId}`
-  const [, , txErr] = await Promise.all([
-    admin.from('profiles').update({ credits: newBalance }).eq('id', userId),
-    admin.from('brief_unlocks').insert({ user_id: userId, entity_id: entityId }),
-    Promise.resolve(null),
-  ])
-  void txErr
-  await admin.from('credit_transactions').insert({
-    user_id: userId,
-    transaction_type: 'spend',
-    amount: -1,
-    reason: `Unlocked brief for entity ${entityId}`,
-    idempotency_key: idempotencyKey,
-    balance_after: newBalance,
+  const { data, error } = await admin.rpc('deduct_credits', {
+    p_user_id: userId,
+    p_amount: 1,
+    p_reason: `Unlocked brief for entity ${entityId}`,
+    p_idempotency_key: idempotencyKey,
+    p_entity_id: entityId,
   })
+
+  if (error) {
+    console.error('[unlockBriefForUser] deduct_credits error', error)
+    return { ok: false, error: 'internal' }
+  }
+
+  const result = Array.isArray(data) ? data[0] : data
+  if (!result?.success) {
+    const msg = result?.message ?? ''
+    if (msg === 'insufficient_credits') return { ok: false, error: 'insufficient_credits' }
+    return { ok: false, error: 'internal' }
+  }
+
+  // Record the unlock — ignore conflict (duplicate from race)
+  await admin
+    .from('brief_unlocks')
+    .upsert({ user_id: userId, entity_id: entityId }, { onConflict: 'user_id,entity_id', ignoreDuplicates: true })
 
   return { ok: true }
 }
