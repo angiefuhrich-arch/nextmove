@@ -22,16 +22,16 @@ export function StatCard({ value, label, sublabel, icon, color = 'default', clas
   const c = colorClasses[color]
 
   return (
-    <div className={cn('bg-surface-elevated border border-divider rounded-2xl shadow-card p-5 flex flex-col gap-3', className)}>
+    <div className={cn('bg-surface-elevated border border-divider rounded-xl shadow-sm p-5 flex flex-col gap-3', className)}>
       {icon && (
         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', c.icon)}>
           {icon}
         </div>
       )}
       <div className="flex flex-col gap-0.5">
-        <span className={cn('text-3xl font-bold leading-none', c.value)}>{value}</span>
-        <span className="text-sm font-medium text-ink">{label}</span>
-        {sublabel && <span className="text-badge text-ink-tertiary">{sublabel}</span>}
+        <span className={cn('text-metric-lg font-bold leading-none', c.value)}>{value}</span>
+        <span className="text-caption font-medium text-ink">{label}</span>
+        {sublabel && <span className="text-caption text-ink-tertiary">{sublabel}</span>}
       </div>
     </div>
   )

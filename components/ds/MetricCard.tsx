@@ -17,14 +17,14 @@ export function MetricCard({ label, value, sublabel, delta, icon, className, siz
   const deltaFlat = hasDelta && delta === 0
 
   return (
-    <div className={cn('bg-surface-elevated border border-divider rounded-2xl shadow-card p-5 flex flex-col gap-2', className)}>
+    <div className={cn('bg-surface-elevated border border-divider rounded-2xl shadow-sm p-5 flex flex-col gap-2', className)}>
       <div className="flex items-start justify-between">
-        <p className="text-label font-semibold tracking-caps uppercase text-ink-tertiary">{label}</p>
+        <p className="text-label uppercase tracking-[0.08em] text-ink-tertiary">{label}</p>
         {icon && <span className="text-ink-quaternary">{icon}</span>}
       </div>
 
       <div className="flex items-end gap-2">
-        <span className={cn('font-bold text-ink leading-none', size === 'md' ? 'text-3xl' : 'text-2xl')}>
+        <span className={cn('font-bold text-ink leading-none', size === 'md' ? 'text-metric-md' : 'text-metric-sm')}>
           {value}
         </span>
         {hasDelta && (

@@ -1,22 +1,23 @@
 import { cn } from '@/lib/utils'
-import { ExternalLink, Calendar } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 import { SourceBadge, SourceTier } from './SourceBadge'
 
 interface EvidenceCardProps {
   title: string
-  summary: string
-  sourceLabel: string
+  summary?: string
+  sourceLabel?: string
   sourceUrl?: string
   sourceTier?: SourceTier
   date?: string
   sentiment?: 'positive' | 'neutral' | 'negative'
+  isLast?: boolean
   className?: string
 }
 
-const sentimentBorder: Record<string, string> = {
-  positive: 'border-l-status-success',
-  neutral:  'border-l-status-warning',
-  negative: 'border-l-status-danger',
+const SENTIMENT_DOT: Record<string, string> = {
+  positive: 'bg-status-success',
+  neutral:  'bg-status-warning',
+  negative: 'bg-status-danger',
 }
 
 export function EvidenceCard({
@@ -27,39 +28,41 @@ export function EvidenceCard({
   sourceTier = 3,
   date,
   sentiment,
+  isLast,
   className,
 }: EvidenceCardProps) {
   return (
     <div className={cn(
-      'bg-surface-elevated border border-divider rounded-xl p-4 flex flex-col gap-2',
-      sentiment && `border-l-[3px] ${sentimentBorder[sentiment]}`,
+      'flex gap-3 px-4 py-3',
+      'hover:bg-surface-subdued/50 transition-colors duration-fast',
+      !isLast && 'border-b border-divider-subtle',
       className
     )}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-ink leading-snug">{title}</p>
-        {sourceUrl && (
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 text-ink-quaternary hover:text-brand transition-colors"
-            aria-label="Open source"
-          >
-            <ExternalLink size={13} />
-          </a>
-        )}
+      {/* Sentiment dot */}
+      <div className="pt-1.5 shrink-0">
+        <span className={cn(
+          'block w-1.5 h-1.5 rounded-full',
+          sentiment ? SENTIMENT_DOT[sentiment] : 'bg-divider'
+        )} />
       </div>
 
-      <p className="text-signal text-ink-secondary leading-relaxed">{summary}</p>
-
-      <div className="flex items-center gap-3 mt-1">
-        <SourceBadge label={sourceLabel} tier={sourceTier} url={sourceUrl} />
-        {date && (
-          <span className="flex items-center gap-1 text-badge text-ink-quaternary">
-            <Calendar size={11} />
-            {date}
-          </span>
+      {/* Content */}
+      <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+        <p className="text-body-sm text-ink leading-snug">{title}</p>
+        {summary && (
+          <p className="text-caption text-ink-secondary leading-relaxed">{summary}</p>
         )}
+        <div className="flex items-center gap-3 flex-wrap">
+          {sourceLabel && (
+            <SourceBadge label={sourceLabel} tier={sourceTier} url={sourceUrl} />
+          )}
+          {date && (
+            <span className="flex items-center gap-1 text-caption text-ink-quaternary">
+              <Calendar size={10} />
+              {date}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -17,9 +17,9 @@ function scoreColor(score: number) {
 }
 
 const sizeClasses = {
-  sm: { score: 'text-3xl', label: 'text-badge' },
-  md: { score: 'text-5xl', label: 'text-label' },
-  lg: { score: 'text-7xl', label: 'text-sm' },
+  sm: { score: 'text-metric-sm', label: 'text-caption' },
+  md: { score: 'text-metric-lg', label: 'text-label'   },
+  lg: { score: 'text-metric-xl', label: 'text-body-sm' },
 }
 
 export function IndexCard({ score, label = 'SCARSIAN INDEX™', sublabel, showBar = true, size = 'md', className }: IndexCardProps) {

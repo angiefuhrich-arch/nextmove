@@ -1,34 +1,28 @@
 'use client'
 import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { InputHTMLAttributes, forwardRef, useState } from 'react'
+import { InputHTMLAttributes, forwardRef } from 'react'
 
 interface SearchInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
-  size?: 'sm' | 'md' | 'lg'
+  variant?: 'standard' | 'hero'  // standard=56px, hero=64px
   onClear?: () => void
   loading?: boolean
   shortcut?: string
 }
 
-const sizeClasses = {
-  sm: 'h-9 text-sm pl-9 pr-4',
-  md: 'h-11 text-base pl-11 pr-4',
-  lg: 'h-14 text-lg pl-14 pr-5',
-}
-const iconSizes = { sm: 14, md: 16, lg: 20 }
-const iconPositions = { sm: 'left-2.5', md: 'left-3', lg: 'left-4' }
-
 const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
-  ({ className, size = 'md', onClear, loading, shortcut, value, ...props }, ref) => {
-    const iconSize = iconSizes[size]
-    const iconPos  = iconPositions[size]
+  ({ className, variant = 'standard', onClear, loading, shortcut, value, ...props }, ref) => {
+    const isHero = variant === 'hero'
 
     return (
       <div className="relative w-full">
-        <span className={cn('absolute top-1/2 -translate-y-1/2 text-ink-tertiary pointer-events-none', iconPos)}>
+        <span className={cn(
+          'absolute top-1/2 -translate-y-1/2 text-ink-tertiary pointer-events-none',
+          isHero ? 'left-5' : 'left-4'
+        )}>
           {loading
-            ? <span className="block w-4 h-4 border-2 border-ink-quaternary border-t-brand rounded-full animate-spin" />
-            : <Search size={iconSize} />
+            ? <span className="block w-5 h-5 border-2 border-divider border-t-brand rounded-full animate-spin" />
+            : <Search size={isHero ? 20 : 18} />
           }
         </span>
 
@@ -36,11 +30,14 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           ref={ref}
           value={value}
           className={cn(
-            'w-full rounded-full border border-divider bg-surface-elevated text-ink placeholder:text-ink-quaternary',
-            'focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50',
-            'transition-all duration-base',
-            sizeClasses[size],
-            (value && onClear) && 'pr-10',
+            'w-full rounded-xl border border-divider bg-surface-elevated text-ink',
+            'placeholder:text-ink-quaternary text-body-lg',
+            'shadow-sm',
+            'focus:outline-none focus:border-brand focus:shadow-md',
+            'focus:ring-2 focus:ring-border-focus/20',
+            'transition-all duration-base ease-default',
+            isHero ? 'h-16 pl-14 pr-5' : 'h-14 pl-12 pr-4',
+            (value && onClear) && (isHero ? 'pr-14' : 'pr-12'),
             className
           )}
           {...props}
@@ -50,15 +47,23 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           <button
             type="button"
             onClick={onClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-quaternary hover:text-ink-tertiary transition-colors"
+            className={cn(
+              'absolute top-1/2 -translate-y-1/2 text-ink-quaternary hover:text-ink-tertiary transition-colors duration-fast',
+              isHero ? 'right-5' : 'right-4'
+            )}
             aria-label="Clear search"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         )}
 
         {shortcut && !value && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-micro text-ink-quaternary border border-divider rounded px-1.5 py-0.5 pointer-events-none">
+          <div className={cn(
+            'absolute top-1/2 -translate-y-1/2 pointer-events-none',
+            'flex items-center gap-0.5 text-caption text-ink-quaternary',
+            'border border-divider rounded-md px-1.5 py-0.5',
+            isHero ? 'right-5' : 'right-4'
+          )}>
             {shortcut}
           </div>
         )}

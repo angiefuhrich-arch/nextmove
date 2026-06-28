@@ -55,7 +55,7 @@
 
   /* Focus ring */
   *:focus-visible {
-    outline: 2px solid #3B5BFF;
+    outline: 2px solid #2563EB;
     outline-offset: 2px;
   }
 
@@ -69,9 +69,9 @@
 }
 
 @layer components {
-  /* Card base */
+  /* Card base — DS spec: radius-2xl (22px), shadow-md */
   .scarsian-card {
-    @apply bg-surface-elevated border border-divider rounded-2xl shadow-sm;
+    @apply bg-surface-elevated border border-divider rounded-2xl shadow-md;
   }
 
   /* 3D glow text effect (light theme — subtle) */
@@ -235,7 +235,7 @@
 
   /* Interactive transitions */
   .ds-interactive    { @apply transition-all duration-base ease-out cursor-pointer; }
-  .ds-card-hover     { @apply transition-all duration-base ease-out hover:shadow-card-hover hover:border-divider; }
+  .ds-card-hover     { @apply transition-all duration-base hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-muted; }
 
   /* Pipeline active dot animation */
   .pipeline-active span {

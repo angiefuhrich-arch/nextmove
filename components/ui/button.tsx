@@ -2,32 +2,34 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'brand' | 'link'
-export type ButtonSize    = 'xs' | 'sm' | 'md' | 'lg' | 'icon'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'brand' | 'link' | 'outline'
+export type ButtonSize    = 'sm' | 'md' | 'lg' | 'xs' | 'icon'
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:   'bg-brand text-white hover:bg-brand-hover shadow-brand active:scale-[0.98]',
-  secondary: 'bg-surface-subdued text-ink border border-divider hover:bg-divider/60 active:scale-[0.98]',
-  outline:   'bg-transparent text-ink border border-divider hover:border-ink-quaternary hover:bg-surface-subdued active:scale-[0.98]',
-  ghost:     'bg-transparent text-ink-secondary hover:bg-surface-subdued hover:text-ink active:scale-[0.98]',
+  // DS canonical variants
+  primary:   'bg-brand text-white hover:bg-brand-hover active:scale-[0.98]',
+  secondary: 'bg-surface-elevated text-ink-secondary border border-divider hover:bg-surface-subdued active:scale-[0.98]',
+  ghost:     'bg-transparent text-ink-tertiary hover:bg-surface-subdued hover:text-ink-secondary active:scale-[0.98]',
   danger:    'bg-status-danger text-white hover:bg-red-600 active:scale-[0.98]',
+  // Extended variants
   brand:     'bg-brand-light text-brand border border-brand/20 hover:bg-brand/10 active:scale-[0.98]',
-  link:      'bg-transparent text-brand underline-offset-4 hover:underline p-0 h-auto rounded-none shadow-none',
+  outline:   'bg-transparent text-ink border border-divider hover:border-ink-quaternary hover:bg-surface-subdued active:scale-[0.98]',
+  link:      'bg-transparent text-brand underline-offset-4 hover:underline p-0 h-auto rounded-none',
 }
 
+// DS Button sizes: Small=32px/radius-md, Medium=40px/radius-lg, Large=48px/radius-xl
 const sizeClasses: Record<ButtonSize, string> = {
-  xs:   'text-badge px-3 py-1 h-7 gap-1',
-  sm:   'text-sm px-4 py-1.5 h-8 gap-1.5',
-  md:   'text-sm px-5 py-2 h-9 gap-2',
-  lg:   'text-base px-6 py-2.5 h-11 gap-2',
-  icon: 'h-9 w-9 p-0 gap-0',
+  xs:   'h-7  px-3  text-button-sm rounded-sm gap-1',
+  sm:   'h-8  px-4  text-button-sm rounded-md  gap-1.5',
+  md:   'h-10 px-5  text-button    rounded-lg  gap-2',
+  lg:   'h-12 px-7  text-button    rounded-xl  gap-2',
+  icon: 'h-10 w-10 rounded-lg p-0 gap-0',
 }
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
   loading?: boolean
-  asChild?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -35,10 +37,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center whitespace-nowrap font-medium rounded-full',
-          'transition-all duration-base ease-out',
+          'inline-flex items-center justify-center whitespace-nowrap font-semibold select-none',
+          'transition-all duration-fast ease-default',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
-          'disabled:pointer-events-none disabled:opacity-40 select-none',
+          'disabled:pointer-events-none disabled:opacity-40',
           variantClasses[variant],
           sizeClasses[size],
           className

@@ -10,7 +10,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: 'hsl(var(--border))',
+        border: {
+          DEFAULT: '#E5E7EB',
+          subtle: '#F3F4F6',
+          focus: '#2563EB',
+        },
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
@@ -51,9 +55,9 @@ const config: Config = {
         },
         ink: {
           DEFAULT: '#111827',
-          secondary: '#4B5563',
-          tertiary: '#9CA3AF',
-          quaternary: '#D1D5DB',
+          secondary: '#374151',
+          tertiary: '#6B7280',
+          quaternary: '#9CA3AF',
         },
         divider: {
           DEFAULT: '#E5E7EB',
@@ -105,11 +109,29 @@ const config: Config = {
         },
       },
       fontSize: {
-        // Scarsian micro-scale (below Tailwind's xs=12px)
-        'micro': ['9px',  { lineHeight: '1.3', letterSpacing: '0.02em' }],
-        'label': ['10px', { lineHeight: '1.4', letterSpacing: '0.05em' }],
-        'badge': ['11px', { lineHeight: '1.4', letterSpacing: '0.01em' }],
-        'signal': ['13px', { lineHeight: '1.55' }],
+        // Scarsian micro-scale
+        'micro':  ['9px',  { lineHeight: '1.3',  letterSpacing: '0.02em' }],
+        // Full DS type scale
+        'display-xl': ['48px', { lineHeight: '1.1',  letterSpacing: '-0.02em',  fontWeight: '700' }],
+        'display-lg': ['40px', { lineHeight: '1.1',  letterSpacing: '-0.02em',  fontWeight: '700' }],
+        'title-xl':   ['32px', { lineHeight: '1.2',  letterSpacing: '-0.015em', fontWeight: '700' }],
+        'title-lg':   ['24px', { lineHeight: '1.25', letterSpacing: '-0.01em',  fontWeight: '700' }],
+        'title-md':   ['20px', { lineHeight: '1.3',  letterSpacing: '-0.005em', fontWeight: '600' }],
+        'title-sm':   ['16px', { lineHeight: '1.4',  letterSpacing: '0',        fontWeight: '600' }],
+        'body-lg':    ['16px', { lineHeight: '1.6',  letterSpacing: '0',        fontWeight: '400' }],
+        'body-md':    ['14px', { lineHeight: '1.5',  letterSpacing: '0',        fontWeight: '400' }],
+        'body-sm':    ['13px', { lineHeight: '1.5',  letterSpacing: '0',        fontWeight: '400' }],
+        'caption':    ['12px', { lineHeight: '1.4',  letterSpacing: '0.01em',   fontWeight: '500' }],
+        'label':      ['11px', { lineHeight: '1.3',  letterSpacing: '0.08em',   fontWeight: '600' }],
+        'badge':      ['11px', { lineHeight: '1.4',  letterSpacing: '0.01em',   fontWeight: '500' }],
+        'signal':     ['13px', { lineHeight: '1.55', letterSpacing: '0' }],
+        'metric-xl':  ['120px',{ lineHeight: '0.9',  letterSpacing: '-0.04em',  fontWeight: '700' }],
+        'metric-lg':  ['48px', { lineHeight: '1.0',  letterSpacing: '-0.02em',  fontWeight: '700' }],
+        'metric-md':  ['32px', { lineHeight: '1.1',  letterSpacing: '-0.01em',  fontWeight: '700' }],
+        'metric-sm':  ['24px', { lineHeight: '1.2',  letterSpacing: '0',        fontWeight: '700' }],
+        'nav':        ['14px', { lineHeight: '1.0',  letterSpacing: '0',        fontWeight: '500' }],
+        'button':     ['14px', { lineHeight: '1.0',  letterSpacing: '0',        fontWeight: '600' }],
+        'button-sm':  ['12px', { lineHeight: '1.0',  letterSpacing: '0',        fontWeight: '600' }],
       },
       letterSpacing: {
         label: '0.08em',
@@ -117,32 +139,43 @@ const config: Config = {
         widest2: '0.18em',
       },
       borderRadius: {
-        '2xl': '1rem',
-        '3xl': '1.25rem',
-        card: '20px',
+        sm:    '6px',
+        md:    '10px',
+        lg:    '14px',
+        xl:    '18px',
+        '2xl': '22px',
+        '3xl': '1.5rem',
+        full:  '9999px',
+        card:  '22px',
       },
       fontFamily: {
         inter: ['Inter', 'sans-serif'],
       },
       boxShadow: {
-        xs:      '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        sm:      '0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.05)',
-        card:    '0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.05)',
-        'card-hover': '0 4px 12px 0 rgb(0 0 0 / 0.10)',
-        modal:   '0 20px 60px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08)',
-        dropdown:'0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06)',
-        glow:    '0 0 40px rgba(37, 99, 235, 0.18), 0 0 80px rgba(37, 99, 235, 0.10)',
-        'brand': '0 2px 8px rgba(37, 99, 235, 0.30)',
+        // DS canonical 3-level shadow scale
+        sm:  '0 1px 2px rgba(0,0,0,0.04)',
+        md:  '0 4px 16px rgba(0,0,0,0.06)',
+        lg:  '0 12px 40px rgba(0,0,0,0.10)',
+        // Aliases
+        card:         '0 4px 16px rgba(0,0,0,0.06)',
+        'card-hover': '0 12px 40px rgba(0,0,0,0.10)',
+        modal:        '0 12px 40px rgba(0,0,0,0.10)',
+        dropdown:     '0 12px 40px rgba(0,0,0,0.10)',
+        glow:         '0 0 40px rgba(37,99,235,0.18), 0 0 80px rgba(37,99,235,0.10)',
+        brand:        '0 2px 8px rgba(37,99,235,0.30)',
       },
       transitionDuration: {
-        fast:   '120ms',
+        fast:   '100ms',
         base:   '200ms',
-        slow:   '350ms',
+        slow:   '300ms',
         slower: '500ms',
       },
       transitionTimingFunction: {
+        'ease-default':  'cubic-bezier(0.4, 0, 0.2, 1)',
+        'ease-in':       'cubic-bezier(0.4, 0, 1, 1)',
+        'ease-out':      'cubic-bezier(0, 0, 0.2, 1)',
+        'ease-spring':   'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
         'ease-out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
-        'ease-in-expo':  'cubic-bezier(0.7, 0, 0.84, 0)',
         spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
       animation: {

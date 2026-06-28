@@ -1,60 +1,38 @@
 import { cn } from '@/lib/utils'
 
 interface ConfidenceBadgeProps {
-  value: number
-  showDots?: boolean
-  dotCount?: number
-  showLabel?: boolean
+  value: number   // 0–100
   className?: string
-  size?: 'sm' | 'md'
 }
 
-function confidenceLabel(v: number) {
-  if (v >= 80) return 'High'
-  if (v >= 55) return 'Moderate'
-  if (v >= 35) return 'Low'
-  return 'Insufficient'
+type ConfidenceLevel = 'high' | 'moderate' | 'developing' | 'early'
+
+function getLevel(v: number): ConfidenceLevel {
+  if (v >= 85) return 'high'
+  if (v >= 65) return 'moderate'
+  if (v >= 45) return 'developing'
+  return 'early'
 }
 
-function confidenceColor(v: number): string {
-  if (v >= 80) return 'text-status-success'
-  if (v >= 55) return 'text-status-warning'
-  return 'text-status-danger'
+const levelConfig: Record<ConfidenceLevel, { label: string; classes: string }> = {
+  high:       { label: 'High Confidence',     classes: 'bg-status-success-bg   text-status-success  ' },
+  moderate:   { label: 'Moderate Confidence', classes: 'bg-brand-light         text-brand            ' },
+  developing: { label: 'Developing',          classes: 'bg-status-warning-bg   text-status-warning  ' },
+  early:      { label: 'Early',               classes: 'bg-status-danger-bg    text-status-danger   ' },
 }
 
-export function ConfidenceBadge({
-  value,
-  showDots = true,
-  dotCount = 10,
-  showLabel = true,
-  className,
-  size = 'sm',
-}: ConfidenceBadgeProps) {
-  const filled    = Math.round((value / 100) * dotCount)
-  const colorText = confidenceColor(value)
-  const label     = confidenceLabel(value)
+export function ConfidenceBadge({ value, className }: ConfidenceBadgeProps) {
+  const level = getLevel(value)
+  const { label, classes } = levelConfig[level]
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      {showDots && (
-        <div className={cn('flex items-center gap-0.5', size === 'md' ? 'gap-1' : 'gap-0.5')}>
-          {Array.from({ length: dotCount }).map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                'rounded-full transition-colors',
-                size === 'md' ? 'w-2 h-2' : 'w-1.5 h-1.5',
-                i < filled ? 'bg-brand' : 'bg-divider'
-              )}
-            />
-          ))}
-        </div>
-      )}
-      {showLabel && (
-        <span className={cn('text-badge font-semibold', colorText)}>
-          {label} · {value}%
-        </span>
-      )}
-    </div>
+    <span className={cn(
+      'inline-flex items-center h-6 px-[10px] rounded-full',
+      'text-label uppercase tracking-[0.08em]',
+      classes,
+      className
+    )}>
+      {label}
+    </span>
   )
 }
