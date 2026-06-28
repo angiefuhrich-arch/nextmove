@@ -8,8 +8,11 @@ import { getLatestApprovedSnapshot, getTrendPoints } from '@/lib/dal/snapshots'
 import { getPublishedReportForEntity } from '@/lib/dal/analyst-reports'
 import { getActiveSignalsForEntity } from '@/lib/dal/signals'
 import { getEvidenceForEntity } from '@/lib/dal/evidence'
+import { hasUnlockedBrief } from '@/lib/dal/unlocks'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { SignalTabs } from './SignalTabs'
+import { BriefUnlockGate } from './BriefUnlockGate'
 import { Footer } from '@/components/scarsian/Footer'
 import { ConfidenceBadge } from '@/components/ds/ConfidenceBadge'
 import { cn } from '@/lib/utils'
@@ -113,6 +116,18 @@ export default async function BriefPage({
     entityMarket = legacy.headquarters ?? null
   }
 
+  // Auth + unlock check
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userId = user?.id ?? null
+
+  const [unlockedRaw, profileRaw] = await Promise.all([
+    userId && entityId ? hasUnlockedBrief(userId, entityId) : Promise.resolve(false),
+    userId ? supabase.from('profiles').select('credits').eq('id', userId).single() : Promise.resolve({ data: null }),
+  ])
+  const isUnlocked = unlockedRaw as boolean
+  const creditsBalance = (profileRaw?.data as { credits?: number } | null)?.credits ?? 0
+
   // Parallel data fetches — all from real intelligence tables
   const [snapshot, report, signals, evidence, trendPoints] = await Promise.all([
     entityId ? getLatestApprovedSnapshot(entityId) : null,
@@ -156,6 +171,21 @@ export default async function BriefPage({
           </div>
         </div>
       </section>
+
+      {/* ── PAYWALL GATE ───────────────────────────────────────────── */}
+      {!isUnlocked && (
+        <div className="max-w-[800px] mx-auto">
+          <BriefUnlockGate
+            entitySlug={entitySlug}
+            entityName={entityName}
+            creditsBalance={creditsBalance}
+            isAuthenticated={!!userId}
+          />
+        </div>
+      )}
+
+      {/* ── INTELLIGENCE CONTENT (unlocked only) ───────────────────── */}
+      {isUnlocked && <>
 
       {/* ── SCARSIAN INDEX HERO ────────────────────────────────────── */}
       <section className="py-12 px-6 border-b border-divider">
@@ -402,6 +432,8 @@ export default async function BriefPage({
           </div>
         </section>
       )}
+
+      </> /* end isUnlocked */}
 
       <Footer />
     </div>
