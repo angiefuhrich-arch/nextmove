@@ -148,8 +148,17 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             exit={{ opacity: 0, scale: 0.96, y: -16 }}
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             onClick={e => e.stopPropagation()}
+            role="combobox"
+            aria-expanded={displayResults.length > 0}
+            aria-haspopup="listbox"
+            aria-controls="search-results-listbox"
+            aria-activedescendant={selectedIndex >= 0 ? `result-${selectedIndex}` : undefined}
             className="relative w-full max-w-[640px] mx-4 bg-navy-dark border border-navy-light rounded-3xl shadow-modal overflow-hidden"
           >
+            {/* Live region for screen readers */}
+            <div aria-live="polite" className="sr-only">
+              {query.length >= 2 ? `${displayResults.length} results available` : ''}
+            </div>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-navy-light">
               {isSearching || isLaunching
                 ? <Loader2 className="w-5 h-5 text-blue-400 flex-shrink-0 animate-spin" />
@@ -162,17 +171,23 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search any employer…"
+                aria-autocomplete="list"
+                aria-controls="search-results-listbox"
+                aria-activedescendant={selectedIndex >= 0 ? `result-${selectedIndex}` : undefined}
                 className="flex-1 bg-transparent text-white text-lg placeholder-white/30 outline-none"
               />
-              <button onClick={onClose} className="p-1 rounded-md hover:bg-white/10 transition-colors">
+              <button onClick={onClose} aria-label="Close search" className="p-1 rounded-md hover:bg-white/10 transition-colors">
                 <X className="w-5 h-5 text-white/50" />
               </button>
             </div>
 
-            <div className="max-h-[400px] overflow-y-auto p-2">
+            <div id="search-results-listbox" role="listbox" aria-label="Search results" className="max-h-[400px] overflow-y-auto p-2">
               {displayResults.length > 0 ? displayResults.map((company, i) => (
                 <button
                   key={company.slug}
+                  id={`result-${i}`}
+                  role="option"
+                  aria-selected={selectedIndex === i}
                   onClick={() => navigate(company.slug, company.name)}
                   onMouseEnter={() => setSelectedIndex(i)}
                   className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-150 ${
