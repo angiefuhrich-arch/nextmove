@@ -10,6 +10,21 @@ import type {
   EntityCandidate,
 } from './types'
 import { PIPELINE_VERSION, PIPELINE_STEP_LABELS } from './types'
+import { classifyUrl } from './source-tiers'
+
+export type FetchStatus = 'pending' | 'success' | 'failed' | 'skipped' | 'blocked'
+
+export interface EvidenceInsert {
+  pipelineRunId: string
+  entityId?: string
+  sourceCandidateId?: string
+  evidenceType: 'financial' | 'leadership' | 'headcount' | 'culture' | 'compensation' | 'legal' | 'product' | 'market' | 'sentiment'
+  rawText: string
+  structuredData?: Record<string, unknown>
+  sourceUrl?: string
+  sourceTier: number
+  pipelineVersion?: string
+}
 
 // ----------------------------------------------------------------
 // Run lifecycle
@@ -118,20 +133,110 @@ export async function insertSourceCandidates(
 ): Promise<string[]> {
   if (candidates.length === 0) return []
   const db = createAdminClient()
-  const rows = candidates.map(c => ({
-    pipeline_run_id: runId,
-    url: c.url,
-    title: c.title ?? null,
-    description: c.description ?? null,
-    published_date: c.publishedDate ?? null,
-    source_type: c.sourceType,
-    discovery_rank: c.discoveryRank,
-    reliability_score: c.reliabilityScore,
-    is_selected: false,
-  }))
+  const rows = candidates.map(c => {
+    const tier = classifyUrl(c.url)
+    return {
+      pipeline_run_id:   runId,
+      url:               c.url,
+      title:             c.title ?? null,
+      description:       c.description ?? null,
+      published_date:    c.publishedDate ?? null,
+      source_type:       c.sourceType,
+      discovery_rank:    c.discoveryRank,
+      reliability_score: tier.reliabilityScore,
+      source_tier:       tier.tier,
+      is_selected:       false,
+      fetch_status:      'pending',
+    }
+  })
   const { data, error } = await db.from('source_candidates').insert(rows).select('id')
   if (error) throw new Error(`Failed to insert source candidates: ${error.message}`)
   return (data ?? []).map(r => r.id as string)
+}
+
+export interface SourceCandidateRow {
+  id: string
+  url: string
+  title?: string
+  source_tier: number
+  reliability_score: number
+  fetch_status: FetchStatus
+  is_selected: boolean
+}
+
+export async function getCollectibleSources(runId: string): Promise<SourceCandidateRow[]> {
+  const db = createAdminClient()
+  const { data, error } = await db
+    .from('source_candidates')
+    .select('id, url, title, source_tier, reliability_score, fetch_status, is_selected')
+    .eq('pipeline_run_id', runId)
+    .in('source_tier', [1, 2, 3])     // Tier 4 excluded from collection
+    .eq('fetch_status', 'pending')
+    .order('source_tier', { ascending: true })
+    .order('reliability_score', { ascending: false })
+  if (error) throw new Error(`Failed to get collectible sources: ${error.message}`)
+  return (data ?? []) as SourceCandidateRow[]
+}
+
+export async function updateSourceFetch(
+  candidateId: string,
+  update: {
+    fetchStatus: FetchStatus
+    httpStatus?: number
+    pageTitle?: string
+    metaDescription?: string
+    rawText?: string
+    contentLength?: number
+    fetchError?: string
+  }
+) {
+  const db = createAdminClient()
+  await db.from('source_candidates').update({
+    fetch_status:     update.fetchStatus,
+    http_status:      update.httpStatus ?? null,
+    page_title:       update.pageTitle ?? null,
+    meta_description: update.metaDescription ?? null,
+    raw_text:         update.rawText ?? null,
+    content_length:   update.contentLength ?? null,
+    fetch_error:      update.fetchError ?? null,
+    collected_at:     new Date().toISOString(),
+  }).eq('id', candidateId)
+}
+
+// ----------------------------------------------------------------
+// Evidence records
+// ----------------------------------------------------------------
+
+export async function insertEvidenceRecord(ev: EvidenceInsert): Promise<string> {
+  const db = createAdminClient()
+  const { data, error } = await db
+    .from('evidence_records')
+    .insert({
+      pipeline_run_id:     ev.pipelineRunId,
+      entity_id:           ev.entityId ?? null,
+      source_candidate_id: ev.sourceCandidateId ?? null,
+      evidence_type:       ev.evidenceType,
+      raw_text:            ev.rawText,
+      structured_data:     ev.structuredData ?? null,
+      source_url:          ev.sourceUrl ?? null,
+      source_tier:         ev.sourceTier,
+      pipeline_version:    ev.pipelineVersion ?? PIPELINE_VERSION,
+      collected_at:        new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  if (error || !data) throw new Error(`Failed to insert evidence record: ${error?.message}`)
+  return data.id as string
+}
+
+export async function getEvidenceCount(runId: string, maxTier = 3): Promise<number> {
+  const db = createAdminClient()
+  const { count } = await db
+    .from('evidence_records')
+    .select('*', { count: 'exact', head: true })
+    .eq('pipeline_run_id', runId)
+    .lte('source_tier', maxTier)
+  return count ?? 0
 }
 
 // ----------------------------------------------------------------

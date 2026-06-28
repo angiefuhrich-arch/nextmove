@@ -3,38 +3,10 @@
 // Falls back to a structured stub when BRAVE_SEARCH_API_KEY is not configured.
 
 import { insertSourceCandidates, insertEntityCandidates } from '../db'
+import { classifyUrl } from '../source-tiers'
 import type { PipelineContext, StepResult, SourceCandidate, EntityCandidate } from '../types'
 
 const BRAVE_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search'
-
-// Domains that tend to be higher-reliability for employer intelligence
-const RELIABILITY_MAP: Record<string, number> = {
-  'linkedin.com':     85,
-  'glassdoor.com':    80,
-  'bloomberg.com':    90,
-  'reuters.com':      90,
-  'techcrunch.com':   75,
-  'wsj.com':          90,
-  'ft.com':           90,
-  'hkex.com.hk':      95,
-  'sec.gov':          95,
-  'wikipedia.org':    70,
-  'crunchbase.com':   75,
-  'levels.fyi':       72,
-  'teamblind.com':    60,
-  'indeed.com':       65,
-  'jobsdb.com':       60,
-}
-
-function reliabilityForUrl(url: string): number {
-  try {
-    const host = new URL(url).hostname.replace(/^www\./, '')
-    for (const [domain, score] of Object.entries(RELIABILITY_MAP)) {
-      if (host.endsWith(domain)) return score
-    }
-  } catch { /* ignore bad URLs */ }
-  return 50
-}
 
 function normalizeCompanyName(name: string): string {
   return name
@@ -183,21 +155,23 @@ export async function discoverStep(ctx: PipelineContext): Promise<StepResult> {
     return { success: false, insufficientEvidence: true, note: 'No discovery results found' }
   }
 
-  // Map results → SourceCandidate rows
+  // Map results → SourceCandidate rows (tier classification from source-tiers.ts)
   const sourceCandidates: SourceCandidate[] = results.map((r, i) => {
-    const sourceType = r.url.includes('linkedin') ? 'linkedin'
-      : r.url.includes('glassdoor') ? 'glassdoor'
-      : r.url.includes('wikipedia') ? 'wikipedia'
-      : 'web_search'
+    const tier = classifyUrl(r.url)
+    const sourceType: SourceCandidate['sourceType'] =
+      tier.hostname.endsWith('linkedin.com')  ? 'linkedin' :
+      tier.hostname.endsWith('glassdoor.com') ? 'glassdoor' :
+      tier.hostname.endsWith('wikipedia.org') ? 'wikipedia' :
+      'web_search'
 
     return {
       url: r.url,
       title: r.title,
       description: r.description,
       publishedDate: r.page_age ?? undefined,
-      sourceType: sourceType as SourceCandidate['sourceType'],
+      sourceType,
       discoveryRank: i + 1,
-      reliabilityScore: reliabilityForUrl(r.url),
+      reliabilityScore: tier.reliabilityScore,
     }
   })
 
