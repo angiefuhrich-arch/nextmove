@@ -1,20 +1,44 @@
 import { cn } from '@/lib/utils'
 import { HTMLAttributes } from 'react'
 
-function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('rounded-xl border border-slate-200 bg-white shadow-sm', className)} {...props} />
+export type CardPadding = 'none' | 'sm' | 'md' | 'lg'
+
+const paddingClasses: Record<CardPadding, string> = {
+  none: '',
+  sm:   'p-4',
+  md:   'p-6',
+  lg:   'p-8',
+}
+
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  padding?: CardPadding
+  hover?: boolean
+}
+
+function Card({ className, padding = 'none', hover = false, ...props }: CardProps) {
+  return (
+    <div
+      className={cn(
+        'bg-surface-elevated border border-divider rounded-2xl shadow-card',
+        hover && 'transition-all duration-base ease-out hover:shadow-card-hover hover:border-ink-quaternary/40 cursor-pointer',
+        paddingClasses[padding],
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex flex-col space-y-1.5 p-6', className)} {...props} />
+  return <div className={cn('flex flex-col gap-1 p-6', className)} {...props} />
 }
 
 function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('font-semibold leading-none tracking-tight', className)} {...props} />
+  return <h3 className={cn('text-base font-semibold text-ink leading-snug', className)} {...props} />
 }
 
 function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-sm text-slate-500', className)} {...props} />
+  return <p className={cn('text-sm text-ink-secondary', className)} {...props} />
 }
 
 function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

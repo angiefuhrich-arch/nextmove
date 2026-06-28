@@ -207,6 +207,36 @@
     -webkit-backdrop-filter: blur(20px);
   }
 
+  /* ─── Design System Utilities ─────────────────────────────────── */
+
+  /* Section rhythm */
+  .ds-section        { @apply py-20 md:py-28 px-6; }
+  .ds-section-sm     { @apply py-12 md:py-16 px-6; }
+  .ds-container      { @apply max-w-[1100px] mx-auto; }
+  .ds-container-sm   { @apply max-w-[800px] mx-auto; }
+  .ds-container-xs   { @apply max-w-[620px] mx-auto; }
+
+  /* Typography presets */
+  .ds-label          { @apply text-label font-semibold tracking-caps uppercase text-brand; }
+  .ds-label-muted    { @apply text-label font-semibold tracking-caps uppercase text-ink-tertiary; }
+  .ds-heading-xl     { @apply text-4xl md:text-5xl font-bold text-ink leading-tight; }
+  .ds-heading-lg     { @apply text-3xl md:text-4xl font-bold text-ink leading-tight; }
+  .ds-heading-md     { @apply text-2xl font-bold text-ink; }
+  .ds-heading-sm     { @apply text-xl font-semibold text-ink; }
+  .ds-body           { @apply text-sm text-ink-secondary leading-relaxed; }
+  .ds-caption        { @apply text-badge text-ink-tertiary; }
+
+  /* Status badges (semantic) */
+  .ds-badge-success  { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-badge font-semibold bg-status-success-bg text-status-success border border-status-success-border; }
+  .ds-badge-warning  { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-badge font-semibold bg-status-warning-bg text-status-warning border border-status-warning-border; }
+  .ds-badge-danger   { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-badge font-semibold bg-status-danger-bg text-status-danger border border-status-danger-border; }
+  .ds-badge-info     { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-badge font-semibold bg-status-info-bg text-status-info border border-status-info-border; }
+  .ds-badge-neutral  { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-badge font-medium bg-surface-subdued text-ink-secondary border border-divider; }
+
+  /* Interactive transitions */
+  .ds-interactive    { @apply transition-all duration-base ease-out cursor-pointer; }
+  .ds-card-hover     { @apply transition-all duration-base ease-out hover:shadow-card-hover hover:border-divider; }
+
   /* Pipeline active dot animation */
   .pipeline-active span {
     animation: pipelineDot 1.4s ease-in-out infinite;
