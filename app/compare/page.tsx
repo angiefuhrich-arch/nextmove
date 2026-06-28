@@ -54,11 +54,19 @@ export default function ComparePage() {
 
   const addCompany = async (entity: EntityResult) => {
     if (selected.length >= 3) return
-    const company: CompanyData = { slug: entity.slug, name: entity.name, industry: entity.industry }
-    setSelected(prev => [...prev, company])
+    // Optimistically add with metadata, then enrich with snapshot data
+    const placeholder: CompanyData = { slug: entity.slug, name: entity.name, industry: entity.industry }
+    setSelected(prev => [...prev, placeholder])
     setSearchQuery('')
     setSearchResults([])
     setShowSearch(false)
+    try {
+      const res = await fetch(`/api/briefs/${entity.slug}/summary`)
+      if (res.ok) {
+        const data = await res.json()
+        setSelected(prev => prev.map(c => c.slug === entity.slug ? { ...c, ...data } : c))
+      }
+    } catch { /* keep placeholder */ }
   }
 
   const remove = (slug: string) => setSelected(prev => prev.filter(c => c.slug !== slug))

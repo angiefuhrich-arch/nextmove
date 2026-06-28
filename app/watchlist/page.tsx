@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Bell, Trash2, ChevronRight, Settings, Megaphone, X, Mail, Loader2,
+  Bell, Trash2, ChevronRight, Settings, Megaphone, X, Mail, Loader2, TrendingUp,
 } from 'lucide-react'
 import { Footer } from '@/components/scarsian/Footer'
 import { createBrowserClient } from '@supabase/ssr'
@@ -14,6 +14,12 @@ interface SavedCompany {
   company_slug: string
   company_name: string
   created_at: string
+}
+
+interface SnapshotSummary {
+  indexScore: number | null
+  verdict: string | null
+  confidence: number | null
 }
 
 type AlertType = 'score-change' | 'new-signals' | 'weekly-digest'
@@ -28,6 +34,7 @@ interface AlertSetting {
 export default function WatchlistPage() {
   const router = useRouter()
   const [list, setList] = useState<SavedCompany[]>([])
+  const [snapshots, setSnapshots] = useState<Record<string, SnapshotSummary>>({})
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [alertSettings, setAlertSettings] = useState<AlertSetting[]>([
@@ -54,8 +61,24 @@ export default function WatchlistPage() {
         .select('id, company_slug, company_name, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-      setList(data ?? [])
+      const companies = data ?? []
+      setList(companies)
       setLoading(false)
+
+      // Enrich with live snapshot data
+      const entries = await Promise.all(
+        companies.map(async (c) => {
+          try {
+            const res = await fetch(`/api/briefs/${c.company_slug}/summary`)
+            if (!res.ok) return [c.company_slug, null] as const
+            const s = await res.json()
+            return [c.company_slug, s as SnapshotSummary] as const
+          } catch {
+            return [c.company_slug, null] as const
+          }
+        })
+      )
+      setSnapshots(Object.fromEntries(entries.filter(([, v]) => v !== null)))
     }
 
     fetchList()
@@ -197,6 +220,23 @@ export default function WatchlistPage() {
                     Added {new Date(item.created_at).toLocaleDateString()}
                   </div>
                 </div>
+                {snapshots[item.company_slug] ? (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {snapshots[item.company_slug].indexScore !== null && (
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-light border border-brand/20">
+                        <TrendingUp className="w-3 h-3 text-brand" />
+                        <span className="text-[11px] font-bold text-brand">
+                          {Math.round(snapshots[item.company_slug].indexScore!)}
+                        </span>
+                      </div>
+                    )}
+                    {snapshots[item.company_slug].verdict && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary">
+                        {snapshots[item.company_slug].verdict!.replace(/-/g, ' ')}
+                      </span>
+                    )}
+                  </div>
+                ) : null}
                 <button
                   onClick={() => router.push(`/brief/${item.company_slug}`)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-brand border border-brand/20 hover:bg-brand-light transition-colors"
