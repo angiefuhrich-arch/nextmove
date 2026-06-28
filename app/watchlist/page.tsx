@@ -22,6 +22,15 @@ interface SnapshotSummary {
   confidence: number | null
 }
 
+interface WatchlistNotification {
+  id: string
+  entity_id: string
+  notification_type: string
+  message: string
+  is_read: boolean
+  created_at: string
+}
+
 type AlertType = 'score-change' | 'new-signals' | 'weekly-digest'
 
 interface AlertSetting {
@@ -35,6 +44,8 @@ export default function WatchlistPage() {
   const router = useRouter()
   const [list, setList] = useState<SavedCompany[]>([])
   const [snapshots, setSnapshots] = useState<Record<string, SnapshotSummary>>({})
+  const [notifications, setNotifications] = useState<WatchlistNotification[]>([])
+  const [showNotifications, setShowNotifications] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [alertSettings, setAlertSettings] = useState<AlertSetting[]>([
@@ -64,6 +75,11 @@ export default function WatchlistPage() {
       const companies = data ?? []
       setList(companies)
       setLoading(false)
+
+      // Fetch watchlist notifications
+      fetch('/api/watchlist/notifications')
+        .then(r => r.ok ? r.json() : { notifications: [] })
+        .then(d => setNotifications(d.notifications ?? []))
 
       // Enrich with live snapshot data
       const entries = await Promise.all(
@@ -115,15 +131,81 @@ export default function WatchlistPage() {
             <h1 className="text-3xl font-bold text-ink tracking-[-1px]">Your Watchlist</h1>
             <span className="px-2.5 py-0.5 rounded-full bg-surface-subdued text-xs text-ink-tertiary border border-divider">{list.length}</span>
           </div>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-divider text-[11px] text-ink-tertiary hover:text-brand hover:border-brand/30 transition-all"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Alerts
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl border border-divider text-[11px] text-ink-tertiary hover:text-brand hover:border-brand/30 transition-all"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              Updates
+              {notifications.filter(n => !n.is_read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand text-white text-[9px] font-bold flex items-center justify-center">
+                  {notifications.filter(n => !n.is_read).length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-divider text-[11px] text-ink-tertiary hover:text-brand hover:border-brand/30 transition-all"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Alerts
+            </button>
+          </div>
         </div>
         <p className="text-sm text-ink-tertiary mb-8">Employers you are tracking</p>
+
+        {/* Intelligence Updates Panel */}
+        <AnimatePresence>
+          {showNotifications && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6 overflow-hidden"
+            >
+              <div className="bg-white border border-divider rounded-2xl p-5 shadow-card">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-brand" />
+                    <span className="text-sm font-semibold text-ink">Intelligence Updates</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {notifications.filter(n => !n.is_read).length > 0 && (
+                      <button
+                        onClick={() => {
+                          fetch('/api/watchlist/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+                          setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+                        }}
+                        className="text-[10px] text-brand hover:underline"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                    <button onClick={() => setShowNotifications(false)} className="p-1 rounded hover:bg-surface-subdued">
+                      <X className="w-3.5 h-3.5 text-ink-quaternary" />
+                    </button>
+                  </div>
+                </div>
+                {notifications.length === 0 ? (
+                  <p className="text-body-sm text-ink-quaternary text-center py-4">No updates yet. We&apos;ll notify you when intelligence changes.</p>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                    {notifications.map(n => (
+                      <div key={n.id} className={`flex items-start gap-3 p-3 rounded-xl ${n.is_read ? 'bg-surface-subdued/40' : 'bg-brand-light'}`}>
+                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.is_read ? 'bg-divider' : 'bg-brand'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] text-ink-secondary">{n.message}</p>
+                          <p className="text-[10px] text-ink-quaternary mt-0.5">{new Date(n.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Alert Settings Panel */}
         <AnimatePresence>
