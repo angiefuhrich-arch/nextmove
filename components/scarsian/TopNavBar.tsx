@@ -31,13 +31,17 @@ function getInitials(displayName: string | null | undefined, email: string | nul
   return (email ?? 'SC').substring(0, 2).toUpperCase()
 }
 
+const AUTH_PAGES = ['/login', '/signup']
+
 export function TopNavBar() {
   const pathname = usePathname()
   const router = useRouter()
   const isHome = pathname === '/'
+  const isAuthPage = AUTH_PAGES.includes(pathname)
   const [showNavSearch, setShowNavSearch] = useState(false)
   const navInputRef = useRef<HTMLInputElement>(null)
 
+  const [loggedIn, setLoggedIn] = useState(false)
   const [credits, setCredits] = useState<number | null>(null)
   const [initials, setInitials] = useState('SC')
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -46,29 +50,56 @@ export function TopNavBar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Fetch user data
+  // Fetch user data and subscribe to auth state changes
   useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+
     let active = true
-    ;(async () => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      )
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !active) return
+
+    async function loadProfile(userId: string, email: string | undefined) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('credits, display_name, is_admin')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
       if (!active) return
+      setLoggedIn(true)
       setCredits(profile?.credits ?? 0)
       setDisplayName(profile?.display_name ?? null)
-      setUserEmail(user.email ?? null)
-      setInitials(getInitials(profile?.display_name, user.email))
+      setUserEmail(email ?? null)
+      setInitials(getInitials(profile?.display_name, email))
       setIsAdmin(profile?.is_admin ?? false)
-    })()
-    return () => { active = false }
+    }
+
+    // Initial load
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user || !active) return
+      loadProfile(user.id, user.email)
+    })
+
+    // Stay in sync with auth state changes (covers signOut)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setLoggedIn(false)
+        setCredits(null)
+        setDisplayName(null)
+        setUserEmail(null)
+        setInitials('SC')
+        setIsAdmin(false)
+        setMenuOpen(false)
+      } else if (session?.user) {
+        loadProfile(session.user.id, session.user.email)
+      }
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Cmd+K handler
@@ -121,7 +152,8 @@ export function TopNavBar() {
   const handleLogout = async () => {
     setMenuOpen(false)
     await fetch('/api/auth/logout', { method: 'POST' })
-    window.location.href = '/login'
+    router.refresh()
+    window.location.replace('/login')
   }
 
   return (
@@ -137,83 +169,94 @@ export function TopNavBar() {
         <SearchBox size="compact" placeholder="Search any employer…" inputRef={navInputRef} />
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <Link
-          href="/wallet"
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-light border border-brand/20 text-[11px] hover:bg-brand/10 transition-all"
-        >
-          <span className="text-brand font-semibold">{credits ?? '—'}</span>
-          <span className="text-brand/70 hidden sm:inline">credits</span>
-        </Link>
-
-        {/* Avatar + dropdown */}
-        <div ref={menuRef} className="relative">
-          <button
-            onClick={() => setMenuOpen(prev => !prev)}
-            aria-label="Account menu"
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            className="w-8 h-8 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-[10px] font-bold text-brand hover:bg-brand/20 transition-colors"
-          >
-            {initials}
-          </button>
-
-          {menuOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 top-full mt-2 w-56 bg-white border border-divider rounded-2xl shadow-elevated overflow-hidden z-[200]"
+      {/* Right — hidden entirely on login/signup pages */}
+      {!isAuthPage && (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {loggedIn && (
+            <Link
+              href="/wallet"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-light border border-brand/20 text-[11px] hover:bg-brand/10 transition-all"
             >
-              {/* User identity header */}
-              <div className="px-3.5 py-3 border-b border-divider">
-                <p className="text-sm font-semibold text-ink truncate">{displayName ?? userEmail ?? 'Account'}</p>
-                {displayName && <p className="text-[11px] text-ink-quaternary truncate mt-0.5">{userEmail}</p>}
-              </div>
+              <span className="text-brand font-semibold">{credits ?? '—'}</span>
+              <span className="text-brand/70 hidden sm:inline">credits</span>
+            </Link>
+          )}
 
-              {/* Primary nav */}
-              <div className="py-1.5">
-                {BASE_MENU_ITEMS.map(item => (
-                  <Link key={item.href} href={item.href} role="menuitem"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-ink-secondary hover:bg-surface-subdued hover:text-ink transition-colors">
-                    <item.icon className="w-3.5 h-3.5 text-ink-quaternary flex-shrink-0" />
-                    {item.label}
-                  </Link>
-                ))}
-                {isAdmin && (
-                  <Link href="/admin" role="menuitem"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-brand font-medium hover:bg-brand/5 transition-colors">
-                    <LayoutDashboard className="w-3.5 h-3.5 flex-shrink-0" />
-                    Admin Dashboard
-                  </Link>
-                )}
-              </div>
+          {loggedIn ? (
+            /* Avatar + dropdown */
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={() => setMenuOpen(prev => !prev)}
+                aria-label="Account menu"
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                className="w-8 h-8 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-[10px] font-bold text-brand hover:bg-brand/20 transition-colors"
+              >
+                {initials}
+              </button>
 
-              {/* Settings / Help */}
-              <div className="border-t border-divider py-1.5">
-                {BOTTOM_MENU_ITEMS.map(item => (
-                  <Link key={item.href} href={item.href} role="menuitem"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-ink-secondary hover:bg-surface-subdued hover:text-ink transition-colors">
-                    <item.icon className="w-3.5 h-3.5 text-ink-quaternary flex-shrink-0" />
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-2 w-56 bg-white border border-divider rounded-2xl shadow-elevated overflow-hidden z-[200]"
+                >
+                  {/* User identity header */}
+                  <div className="px-3.5 py-3 border-b border-divider">
+                    <p className="text-sm font-semibold text-ink truncate">{displayName ?? userEmail ?? 'Account'}</p>
+                    {displayName && <p className="text-[11px] text-ink-quaternary truncate mt-0.5">{userEmail}</p>}
+                  </div>
 
-              {/* Logout */}
-              <div className="border-t border-divider py-1.5">
-                <button role="menuitem" onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-ink-secondary hover:bg-red-50 hover:text-red-600 transition-colors">
-                  <LogOut className="w-3.5 h-3.5 text-ink-quaternary flex-shrink-0" />
-                  Log out
-                </button>
-              </div>
+                  {/* Primary nav */}
+                  <div className="py-1.5">
+                    {BASE_MENU_ITEMS.map(item => (
+                      <Link key={item.href} href={item.href} role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-ink-secondary hover:bg-surface-subdued hover:text-ink transition-colors">
+                        <item.icon className="w-3.5 h-3.5 text-ink-quaternary flex-shrink-0" />
+                        {item.label}
+                      </Link>
+                    ))}
+                    {isAdmin && (
+                      <Link href="/admin" role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-brand font-medium hover:bg-brand/5 transition-colors">
+                        <LayoutDashboard className="w-3.5 h-3.5 flex-shrink-0" />
+                        Admin Dashboard
+                      </Link>
+                    )}
+                  </div>
+
+                  {/* Settings / Help */}
+                  <div className="border-t border-divider py-1.5">
+                    {BOTTOM_MENU_ITEMS.map(item => (
+                      <Link key={item.href} href={item.href} role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-ink-secondary hover:bg-surface-subdued hover:text-ink transition-colors">
+                        <item.icon className="w-3.5 h-3.5 text-ink-quaternary flex-shrink-0" />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* Logout */}
+                  <div className="border-t border-divider py-1.5">
+                    <button role="menuitem" onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-ink-secondary hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <LogOut className="w-3.5 h-3.5 text-ink-quaternary flex-shrink-0" />
+                      Log out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            <Link href="/login"
+              className="px-3.5 py-1.5 rounded-full border border-divider text-[11px] font-medium text-ink-secondary hover:border-brand/30 hover:text-brand transition-all">
+              Sign in
+            </Link>
           )}
         </div>
-      </div>
+      )}
     </header>
   )
 }

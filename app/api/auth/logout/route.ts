@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic'
 export async function POST() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'), {
-    status: 303,
-  })
+  // Return 200 — the client handles the redirect so it can call router.refresh() first
+  return NextResponse.json({ ok: true })
 }

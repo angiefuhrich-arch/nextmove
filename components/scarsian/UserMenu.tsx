@@ -54,7 +54,7 @@ export function UserMenu() {
   async function handleLogout() {
     setOpen(false)
     await fetch('/api/auth/logout', { method: 'POST' })
-    window.location.href = '/login'
+    window.location.replace('/login')
   }
 
   return (
