@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { approveScarsianSnapshot, rejectScarsianSnapshot } from '@/lib/dal/snapshots'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-async function requireAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { user: null, error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-  if (!profile?.is_admin) return { user: null, error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
-  return { user, error: null }
-}
+import { requireAdmin } from '@/lib/security/auth'
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ snapshotId: string }> }
 ) {
-  const { user, error } = await requireAdmin()
-  if (error) return error
+  const auth = await requireAdmin(req)
+  if (auth.error) return auth.error
+  const user = auth.user
 
   const { snapshotId } = await params
   const body = await req.json().catch(() => ({}))

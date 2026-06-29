@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin } from '@/lib/security/auth'
 import { calculateScarsianScores, toEmployerPillarNames, SCORING_SIGNALS, CONFIDENCE_SIGNALS } from '@/lib/scoring'
 import type { ScoringSignals, ConfidenceInputs } from '@/lib/scoring'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ snapshotId: string }> }) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-    if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await requireAdmin(req)
+    if (auth.error) return auth.error
+    const user = auth.user
 
     const { snapshotId } = await params
     const body = await req.json()

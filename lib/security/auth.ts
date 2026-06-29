@@ -46,7 +46,15 @@ export interface AdminError {
   error: NextResponse
 }
 
-/** Require a valid session AND profiles.is_admin = true. Returns the user's role. */
+/** Require a valid session AND admin access.
+ *
+ * Source of truth priority:
+ * 1. JWT app_metadata.is_admin — set by owner-bootstrap, immune to RLS, no extra DB query.
+ * 2. profiles.is_admin via admin client — fallback for rows not yet updated via bootstrap.
+ *
+ * Never uses the anon-key client for the is_admin check — RLS blocks that query
+ * for users who don't have an explicit self-read policy on profiles.
+ */
 export async function requireAdmin(request?: NextRequest): Promise<AdminResult | AdminError> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -58,7 +66,18 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminResult |
     }
   }
 
-  const { data: profile } = await supabase
+  // Primary: JWT app_metadata set by bootstrap (no DB query, no RLS)
+  const jwtIsAdmin = user.app_metadata?.is_admin === true
+  const jwtRole = user.app_metadata?.role as AdminRole | undefined
+
+  if (jwtIsAdmin) {
+    return { user, isAdmin: true, role: jwtRole ?? 'admin', error: null }
+  }
+
+  // Fallback: query profiles using the service-role admin client (bypasses RLS)
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const db = createAdminClient()
+  const { data: profile } = await db
     .from('profiles')
     .select('is_admin, role')
     .eq('id', user.id)

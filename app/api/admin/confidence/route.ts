@@ -6,26 +6,21 @@
 //   <60%   → mark insufficient_evidence
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { approveScarsianSnapshot } from '@/lib/dal/snapshots'
+import { requireAdmin } from '@/lib/security/auth'
 
-async function requireAdmin(req: NextRequest) {
+async function checkAccess(req: NextRequest) {
   // Allow cron secret OR logged-in admin
   const cronSecret = req.headers.get('x-cron-secret')
-  if (cronSecret && cronSecret === process.env.CRON_SECRET) return { ok: true }
-
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-  if (!profile?.is_admin) return { ok: false, error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
-  return { ok: true }
+  if (cronSecret && cronSecret === process.env.CRON_SECRET) return null
+  const auth = await requireAdmin(req)
+  return auth.error ?? null
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin(req)
-  if (!auth.ok) return auth.error!
+  const denied = await checkAccess(req)
+  if (denied) return denied
 
   const admin = createAdminClient()
 

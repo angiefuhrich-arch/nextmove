@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin } from '@/lib/security/auth'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { FileText, CheckCircle2, XCircle, Clock, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -52,12 +53,8 @@ export default async function EvidenceQueuePage({
 }: {
   searchParams: Promise<{ filter?: string }>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login?next=/admin/evidence')
-
-  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-  if (!profile?.is_admin) redirect('/')
+  const auth = await requireAdmin()
+  if (auth.error) redirect('/login?next=/admin/evidence')
 
   const { filter: filterParam } = await searchParams
   const activeFilter = (filterParam ?? 'All') as FilterTab
