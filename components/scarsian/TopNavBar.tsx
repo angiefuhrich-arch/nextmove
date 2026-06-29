@@ -59,31 +59,32 @@ export function TopNavBar() {
 
     let active = true
 
-    async function loadProfile(userId: string, email: string | undefined, appMetadata?: Record<string, unknown>) {
-      // is_admin: read from app_metadata (JWT, immune to RLS) with profiles as fallback for credits/display_name
-      const jwtIsAdmin = appMetadata?.is_admin === true
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('credits, display_name')
-        .eq('id', userId)
-        .single()
+    async function loadMe() {
+      // /api/auth/me uses the service-role admin client server-side — bypasses RLS,
+      // checks both app_metadata and profiles.is_admin, returns a single trusted response.
+      const res = await fetch('/api/auth/me')
       if (!active) return
+      if (!res.ok) {
+        setLoggedIn(false)
+        return
+      }
+      const me = await res.json()
+      if (!me.authenticated) {
+        setLoggedIn(false)
+        return
+      }
       setLoggedIn(true)
-      setCredits(profile?.credits ?? 0)
-      setDisplayName(profile?.display_name ?? null)
-      setUserEmail(email ?? null)
-      setInitials(getInitials(profile?.display_name, email))
-      setIsAdmin(jwtIsAdmin)
+      setCredits(me.credits ?? 0)
+      setDisplayName(me.display_name ?? null)
+      setUserEmail(me.email ?? null)
+      setInitials(getInitials(me.display_name, me.email))
+      setIsAdmin(me.is_admin === true)
     }
 
     // Initial load
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user || !active) return
-      loadProfile(user.id, user.email, user.app_metadata)
-    })
+    loadMe()
 
-    // Stay in sync with auth state changes (covers signOut)
+    // Stay in sync with auth state changes (covers signOut and session refresh after bootstrap)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return
       if (event === 'SIGNED_OUT' || !session?.user) {
@@ -94,8 +95,9 @@ export function TopNavBar() {
         setInitials('SC')
         setIsAdmin(false)
         setMenuOpen(false)
-      } else if (session?.user) {
-        loadProfile(session.user.id, session.user.email, session.user.app_metadata)
+      } else {
+        // Re-fetch from server so is_admin reflects the latest state
+        loadMe()
       }
     })
 
