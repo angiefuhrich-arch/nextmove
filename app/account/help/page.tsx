@@ -29,7 +29,7 @@ export default function HelpPage() {
         {/* Contact options */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { icon: Mail, label: 'Email Support', desc: 'Get help from our team. We respond within 1–2 business days.', action: 'support@scarsian.com', href: 'mailto:support@scarsian.com' },
+            { icon: Mail, label: 'Email Support', desc: 'Get help from our team. We respond within 1–2 business days.', action: 'admin@scarsian.com', href: 'mailto:admin@scarsian.com' },
             { icon: BookOpen, label: 'Documentation', desc: 'Guides on Intelligence Briefs, the Scarsian Index, and methodology.', action: 'View docs', href: '/methodology' },
             { icon: MessageSquare, label: 'Feedback', desc: 'Report bugs, suggest features, or share your experience.', action: 'Send feedback', href: 'mailto:feedback@scarsian.com' },
             { icon: FileText, label: 'Methodology', desc: 'How the Scarsian Index is calculated and what the scores mean.', action: 'Read methodology', href: '/methodology' },
