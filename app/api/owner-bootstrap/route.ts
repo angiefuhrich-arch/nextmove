@@ -76,6 +76,10 @@ export async function GET(request: NextRequest) {
 
   console.log('[owner-bootstrap] promoted', user.email, 'to owner')
 
+  // Force a session refresh so the new app_metadata is baked into the JWT
+  // before the middleware checks it on the next request.
+  await supabase.auth.refreshSession()
+
   // Redirect to the originally-requested admin path
   const next = request.nextUrl.searchParams.get('next') ?? '/admin'
   const target = next.startsWith('/') ? next : '/admin'
