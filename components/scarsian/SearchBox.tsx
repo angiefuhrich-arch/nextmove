@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useId } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Loader2, Clock, TrendingUp, AlertCircle } from 'lucide-react'
 import { useEmployerSearch } from '@/lib/hooks/useEmployerSearch'
 
@@ -48,6 +49,7 @@ interface SearchBoxProps {
 }
 
 export function SearchBox({ id, placeholder = 'Search any employer…', size = 'hero', autoFocus, inputRef: externalInputRef }: SearchBoxProps) {
+  const router = useRouter()
   const listboxId = useId()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -101,6 +103,14 @@ export function SearchBox({ id, placeholder = 'Search any employer…', size = '
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  const navigateToBrief = useCallback((slug: string, name: string) => {
+    saveRecent(name)
+    setRecent(loadRecent())
+    setOpen(false)
+    setQuery('')
+    router.push(`/brief/${slug}`)
+  }, [router])
+
   const launch = useCallback(async (name: string) => {
     saveRecent(name)
     setRecent(loadRecent())
@@ -116,10 +126,10 @@ export function SearchBox({ id, placeholder = 'Search any employer…', size = '
 
   // Build the ordered list of items shown in dropdown
   const hasQuery = query.trim().length >= 2
-  const dropdownItems: Array<{ type: 'result' | 'recent' | 'popular' | 'generate'; label: string; sub?: string }> = []
+  const dropdownItems: Array<{ type: 'result' | 'recent' | 'popular' | 'generate'; label: string; sub?: string; slug?: string }> = []
 
   if (hasQuery) {
-    activeResults.forEach(r => dropdownItems.push({ type: 'result', label: r.name, sub: r.industry }))
+    activeResults.forEach(r => dropdownItems.push({ type: 'result', label: r.name, sub: r.industry, slug: r.slug }))
     dropdownItems.push({ type: 'generate', label: `Generate Intelligence Brief for "${query.trim()}"`, sub: 'On-demand pipeline · ~20s' })
   } else {
     recent.forEach(r => dropdownItems.push({ type: 'recent', label: r }))
@@ -138,7 +148,11 @@ export function SearchBox({ id, placeholder = 'Search any employer…', size = '
       e.preventDefault()
       if (selectedIndex >= 0 && dropdownItems[selectedIndex]) {
         const item = dropdownItems[selectedIndex]
-        launch(item.type === 'generate' ? query.trim() : item.label)
+        if (item.type === 'result' && item.slug) {
+          navigateToBrief(item.slug, item.label)
+        } else {
+          launch(item.type === 'generate' ? query.trim() : item.label)
+        }
       } else if (query.trim().length >= 2) {
         launch(query.trim())
       }
@@ -227,7 +241,14 @@ export function SearchBox({ id, placeholder = 'Search any employer…', size = '
                     role="option"
                     aria-selected={selectedIndex === i}
                     onMouseEnter={() => setSelectedIndex(i)}
-                    onMouseDown={e => { e.preventDefault(); launch(item.type === 'generate' ? query.trim() : item.label) }}
+                    onMouseDown={e => {
+                      e.preventDefault()
+                      if (item.type === 'result' && item.slug) {
+                        navigateToBrief(item.slug, item.label)
+                      } else {
+                        launch(item.type === 'generate' ? query.trim() : item.label)
+                      }
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                       selectedIndex === i ? 'bg-brand/5' : 'hover:bg-surface-subdued'
                     } ${item.type === 'generate' ? 'border-t border-divider mt-1 pt-3' : ''}`}
