@@ -1,6 +1,7 @@
 // Server component — reads ?purchase=success from URL and passes initialView to WalletClient.
 // No useSearchParams() needed; no Suspense boundary required.
 
+import { AccountLayout } from '@/components/scarsian/AccountLayout'
 import { WalletClient } from './WalletClient'
 
 export default async function WalletPage({
@@ -11,5 +12,9 @@ export default async function WalletPage({
   const { purchase } = await searchParams
   const initialView = purchase === 'success' ? 'success' : 'overview'
 
-  return <WalletClient initialView={initialView} />
+  return (
+    <AccountLayout>
+      <WalletClient initialView={initialView} />
+    </AccountLayout>
+  )
 }

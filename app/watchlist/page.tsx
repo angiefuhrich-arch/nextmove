@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Bell, Trash2, ChevronRight, Settings, Megaphone, X, Mail, Loader2, TrendingUp,
 } from 'lucide-react'
-import { Footer } from '@/components/scarsian/Footer'
+import { AccountLayout } from '@/components/scarsian/AccountLayout'
 import { createBrowserClient } from '@supabase/ssr'
 
 interface SavedCompany {
@@ -115,15 +115,17 @@ export default function WatchlistPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface pt-14 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-brand animate-spin" />
-      </div>
+      <AccountLayout>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="w-6 h-6 text-brand animate-spin" />
+        </div>
+      </AccountLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-surface pt-14">
-      <div className="max-w-[720px] mx-auto px-6 py-12 md:py-16">
+    <AccountLayout>
+      <div>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
@@ -337,7 +339,6 @@ export default function WatchlistPage() {
           </div>
         )}
       </div>
-      <Footer />
-    </div>
+    </AccountLayout>
   )
 }

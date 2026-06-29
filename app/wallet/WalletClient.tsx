@@ -8,7 +8,6 @@ import {
   Bookmark, Sparkles, Shield, AlertTriangle,
   Lock, Unlock, History, Loader2,
 } from 'lucide-react'
-import { Footer } from '@/components/scarsian/Footer'
 import { createBrowserClient } from '@supabase/ssr'
 
 const creditPackages = [
@@ -95,7 +94,7 @@ export function WalletClient({ initialView }: { initialView: WalletView }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface pt-14 flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 text-brand animate-spin" />
       </div>
     )
@@ -105,8 +104,7 @@ export function WalletClient({ initialView }: { initialView: WalletView }) {
   const purchasedCredits = transactions.filter(tx => tx.transaction_type === 'purchase').reduce((sum, tx) => sum + tx.amount, 0)
 
   return (
-    <div className="min-h-screen bg-surface pt-14">
-      <div className="max-w-[720px] mx-auto px-6 py-14 md:py-20">
+    <div>
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
@@ -275,7 +273,7 @@ export function WalletClient({ initialView }: { initialView: WalletView }) {
           </motion.div>
         )}
 
-        {/* Payment modal */}
+      {/* Payment modal */}
         <AnimatePresence>
           {view !== 'overview' && view !== 'history' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -371,8 +369,6 @@ export function WalletClient({ initialView }: { initialView: WalletView }) {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-      <Footer />
     </div>
   )
 }
