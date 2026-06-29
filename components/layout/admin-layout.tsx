@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Activity, AlertTriangle, FileText, List, Settings, Shield, Home, Users, CreditCard, Unlock } from 'lucide-react'
+import { Activity, AlertTriangle, FileText, List, Settings, Shield, Home, Users, CreditCard, Unlock, UsersRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/admin/sources',                label: 'Source Queue',        icon: List          },
   { href: '/admin/audit',                  label: 'Audit Log',           icon: Shield        },
   { href: '/admin/tiers',                  label: 'Tier Rules',          icon: Settings      },
+  { href: '/admin/team',                   label: 'Team',                icon: UsersRound    },
 ]
 
 interface AdminLayoutProps {
