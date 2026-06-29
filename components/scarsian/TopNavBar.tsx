@@ -59,10 +59,13 @@ export function TopNavBar() {
 
     let active = true
 
-    async function loadProfile(userId: string, email: string | undefined) {
+    async function loadProfile(userId: string, email: string | undefined, appMetadata?: Record<string, unknown>) {
+      // is_admin: read from app_metadata (JWT, immune to RLS) with profiles as fallback for credits/display_name
+      const jwtIsAdmin = appMetadata?.is_admin === true
+
       const { data: profile } = await supabase
         .from('profiles')
-        .select('credits, display_name, is_admin')
+        .select('credits, display_name')
         .eq('id', userId)
         .single()
       if (!active) return
@@ -71,13 +74,13 @@ export function TopNavBar() {
       setDisplayName(profile?.display_name ?? null)
       setUserEmail(email ?? null)
       setInitials(getInitials(profile?.display_name, email))
-      setIsAdmin(profile?.is_admin ?? false)
+      setIsAdmin(jwtIsAdmin)
     }
 
     // Initial load
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user || !active) return
-      loadProfile(user.id, user.email)
+      loadProfile(user.id, user.email, user.app_metadata)
     })
 
     // Stay in sync with auth state changes (covers signOut)
@@ -92,7 +95,7 @@ export function TopNavBar() {
         setIsAdmin(false)
         setMenuOpen(false)
       } else if (session?.user) {
-        loadProfile(session.user.id, session.user.email)
+        loadProfile(session.user.id, session.user.email, session.user.app_metadata)
       }
     })
 
@@ -217,12 +220,20 @@ export function TopNavBar() {
                       </Link>
                     ))}
                     {isAdmin && (
-                      <Link href="/admin" role="menuitem"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-brand font-medium hover:bg-brand/5 transition-colors">
-                        <LayoutDashboard className="w-3.5 h-3.5 flex-shrink-0" />
-                        Admin Dashboard
-                      </Link>
+                      <>
+                        <Link href="/admin" role="menuitem"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-brand font-medium hover:bg-brand/5 transition-colors">
+                          <LayoutDashboard className="w-3.5 h-3.5 flex-shrink-0" />
+                          Admin Dashboard
+                        </Link>
+                        <Link href="/admin/settings" role="menuitem"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-brand font-medium hover:bg-brand/5 transition-colors">
+                          <Settings className="w-3.5 h-3.5 flex-shrink-0" />
+                          Admin Settings
+                        </Link>
+                      </>
                     )}
                   </div>
 
