@@ -102,12 +102,16 @@ export function SearchBox({ id, placeholder = 'Search any employer…', size = '
   }, [])
 
   const launch = useCallback(async (name: string) => {
-    setOpen(false)
-    setQuery('')
     saveRecent(name)
     setRecent(loadRecent())
     clearError()
-    await search(name)
+    setSelectedIndex(-1)
+    const ok = await search(name)
+    // On success, navigation takes over. On failure, keep dropdown open so the error is visible.
+    if (ok) {
+      setOpen(false)
+      setQuery('')
+    }
   }, [search, clearError])
 
   // Build the ordered list of items shown in dropdown

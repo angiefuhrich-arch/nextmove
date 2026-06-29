@@ -144,12 +144,18 @@ export async function POST(request: NextRequest) {
     return dailyLimited
   }
 
-  const runId = await createPipelineRun({
-    entitySlug: slug,
-    entityName,
-    entityType,
-    requestedBy: userId,
-  })
+  let runId: string
+  try {
+    runId = await createPipelineRun({
+      entitySlug: slug,
+      entityName,
+      entityType,
+      requestedBy: userId,
+    })
+  } catch (err) {
+    log.pipelineFailed('unknown', 'createRun', String(err))
+    return NextResponse.json({ error: 'Could not create pipeline run. Please try again.' }, { status: 500 })
+  }
 
   log.pipelineStarted(runId, entityName, userId)
 

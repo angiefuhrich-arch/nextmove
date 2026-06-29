@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { PipelineLoader } from '@/components/scarsian/PipelineLoader'
 import type { PipelineStatus, StepLogEntry } from '@/lib/pipeline/runner'
+import Link from 'next/link'
 
 const TERMINAL: PipelineStatus[] = ['completed', 'insufficient_evidence', 'failed']
 const POLL_INTERVAL = 2000
@@ -54,6 +55,16 @@ function BuildingPageInner() {
     intervalRef.current = setInterval(poll, POLL_INTERVAL)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [runId, entitySlug, router])
+
+  if (!runId) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center gap-4 text-center px-4">
+        <p className="text-ink font-medium">No pipeline run found.</p>
+        <p className="text-sm text-ink-tertiary">The research run ID is missing from the URL.</p>
+        <Link href="/" className="text-sm text-brand hover:underline">Return to search</Link>
+      </div>
+    )
+  }
 
   return (
     <PipelineLoader

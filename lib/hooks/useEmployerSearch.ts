@@ -18,21 +18,26 @@ export function useEmployerSearch() {
   const [error, setError] = useState<string | null>(null)
 
   const search = useCallback(async (query: string): Promise<boolean> => {
-    const slug = slugify(query)
+    const q = query.trim()
+    if (!q) return false
+    const slug = slugify(q)
     setIsSearching(true)
     setError(null)
-    console.log('[employer-search] query:', query, 'slug:', slug)
 
     try {
       const res = await fetch('/api/pipeline/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entitySlug: slug, entityName: query.trim(), entityType: 'employer' }),
+        body: JSON.stringify({ entitySlug: slug, entityName: q, entityType: 'employer' }),
       })
 
-      console.log('[employer-search] pipeline status:', res.status)
+      // Middleware redirects unauthenticated /api/pipeline/* requests to /login via 307.
+      // fetch() follows the redirect automatically, landing on the login page (200 HTML).
+      // We detect this by checking res.redirected or a non-JSON content-type.
+      const contentType = res.headers.get('content-type') ?? ''
+      const isJson = contentType.includes('application/json')
 
-      if (res.status === 401) {
+      if (res.status === 401 || (res.redirected && !isJson)) {
         const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '/')
         router.push(`/login?next=${returnTo}`)
         setIsSearching(false)
@@ -41,29 +46,42 @@ export function useEmployerSearch() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}))
-        console.error('[employer-search] pipeline error:', errData)
-        setError('Could not start research. Please try again.')
+        const msg = (errData as { error?: string }).error ?? 'Could not start research. Please try again.'
+        setError(msg)
         setIsSearching(false)
         return false
       }
 
-      const data = await res.json()
-      console.log('[employer-search] pipeline response:', data)
+      if (!isJson) {
+        // Unexpected non-JSON success response — defensive
+        setError('Unexpected server response. Please try again.')
+        setIsSearching(false)
+        return false
+      }
+
+      const data = await res.json() as {
+        briefReady?: boolean
+        entitySlug?: string
+        runId?: string
+        duplicate?: boolean
+      }
 
       if (data.briefReady) {
         router.push(`/brief/${data.entitySlug ?? slug}`)
-      } else if (data.runId) {
-        router.push(`/building/${slug}?runId=${data.runId}`)
-      } else {
-        console.error('[employer-search] no runId and no briefReady:', data)
-        setError('Could not start research. Please try again.')
-        setIsSearching(false)
-        return false
+        return true
       }
-      return true
-    } catch (err) {
-      console.error('[employer-search] unexpected error:', err)
+
+      if (data.runId) {
+        router.push(`/building/${slug}?runId=${data.runId}`)
+        return true
+      }
+
       setError('Could not start research. Please try again.')
+      setIsSearching(false)
+      return false
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error. Please check your connection.'
+      setError(msg.includes('fetch') || msg.includes('network') ? 'Network error. Please check your connection.' : 'Could not start research. Please try again.')
       setIsSearching(false)
       return false
     }
