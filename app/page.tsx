@@ -85,10 +85,10 @@ export default function HomePage() {
           {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }}
-            className="text-5xl md:text-7xl font-bold text-ink tracking-tight leading-[1.05] mb-6"
+            className="text-5xl md:text-7xl font-bold text-ink tracking-tight leading-[1.05] mb-4"
             style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.03em' }}
           >
-            Know before you<br />accept the offer.
+            Know before you say yes.
           </motion.h1>
 
           {/* Subtitle */}
