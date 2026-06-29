@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User, Briefcase, Bookmark, Settings, HelpCircle, LogOut, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +21,6 @@ export function UserMenu() {
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const ref = useRef<HTMLDivElement>(null)
-  const router = useRouter()
 
   useEffect(() => {
     const supabase = createClient()
@@ -54,10 +52,9 @@ export function UserMenu() {
   ]
 
   async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/')
     setOpen(false)
+    await fetch('/api/auth/logout', { method: 'POST' })
+    window.location.href = '/login'
   }
 
   return (

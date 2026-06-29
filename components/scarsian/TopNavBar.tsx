@@ -120,12 +120,8 @@ export function TopNavBar() {
 
   const handleLogout = async () => {
     setMenuOpen(false)
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
-    await supabase.auth.signOut()
-    router.push('/')
+    await fetch('/api/auth/logout', { method: 'POST' })
+    window.location.href = '/login'
   }
 
   return (

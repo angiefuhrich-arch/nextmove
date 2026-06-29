@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Search, BarChart3, BookmarkCheck,
@@ -29,7 +29,6 @@ function ScarsianIcon() {
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -44,9 +43,8 @@ export function Sidebar() {
   }, [])
 
   const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/')
+    await fetch('/api/auth/logout', { method: 'POST' })
+    window.location.href = '/login'
   }
 
   return (
