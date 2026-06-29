@@ -11,7 +11,10 @@ export const dynamic = 'force-dynamic'
  * access an admin route but is not yet marked as admin. Uses the service-role
  * admin client so it works even before any manual SQL migration has been run.
  *
- * Safe to call multiple times (idempotent UPDATE).
+ * Sets both profiles.is_admin AND auth.users.app_metadata.is_admin so the
+ * middleware can check the JWT directly without a DB round-trip.
+ *
+ * Safe to call multiple times (idempotent).
  * Rejects any request whose authenticated email doesn't match OWNER_EMAIL.
  */
 export async function GET(request: NextRequest) {
@@ -38,23 +41,26 @@ export async function GET(request: NextRequest) {
   // Use the admin (service role) client to bypass RLS
   const db = createAdminClient()
 
-  // Ensure role column exists — safe no-op if already present
-  // We can't run DDL via PostgREST, but we can handle the missing-column case
-  // gracefully by catching the error and still setting is_admin.
-  try {
-    await db
-      .from('profiles')
-      .update({ is_admin: true, role: 'owner' })
-      .eq('id', user.id)
-  } catch {
-    // role column may not exist yet — fall back to just is_admin
-    await db
-      .from('profiles')
-      .update({ is_admin: true })
-      .eq('id', user.id)
+  // 1. Set is_admin in auth.users.app_metadata (embedded in JWT — no DB query needed in middleware)
+  await db.auth.admin.updateUserById(user.id, {
+    app_metadata: { is_admin: true, role: 'owner' },
+  })
+
+  // 2. Set profiles.is_admin (fallback for DB-based checks)
+  const { error: updateErr } = await db
+    .from('profiles')
+    .update({ is_admin: true })
+    .eq('id', user.id)
+
+  if (updateErr) {
+    // Profile row may not exist yet — insert it
+    await db.from('profiles').insert({ id: user.id, is_admin: true, credits: 0 })
   }
 
-  // Also ensure they appear in admin_team_members (best-effort — table may not exist yet)
+  // 3. Best-effort: set role column if it exists
+  await db.from('profiles').update({ role: 'owner' }).eq('id', user.id)
+
+  // 4. Best-effort: upsert into admin_team_members if that table exists
   try {
     await db
       .from('admin_team_members')
@@ -72,7 +78,6 @@ export async function GET(request: NextRequest) {
 
   // Redirect to the originally-requested admin path
   const next = request.nextUrl.searchParams.get('next') ?? '/admin'
-  // Only allow redirects within the same origin
   const target = next.startsWith('/') ? next : '/admin'
   return NextResponse.redirect(new URL(target, request.url))
 }

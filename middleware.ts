@@ -77,14 +77,21 @@ export async function middleware(request: NextRequest) {
   }
 
   if (needsAdmin) {
-    // Check admin flag — read from profiles table
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
+    // Check admin flag — prefer JWT app_metadata (no extra DB round-trip and immune to RLS),
+    // fall back to profiles table for accounts promoted before app_metadata was set.
+    const jwtIsAdmin = user.app_metadata?.is_admin === true
 
-    if (!profile?.is_admin) {
+    let isAdmin = jwtIsAdmin
+    if (!isAdmin) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single()
+      isAdmin = profile?.is_admin === true
+    }
+
+    if (!isAdmin) {
       // If this is the designated owner, send them to the bootstrap route to get promoted
       const ownerEmail = process.env.OWNER_EMAIL
       if (ownerEmail && user.email?.toLowerCase() === ownerEmail.toLowerCase()) {
