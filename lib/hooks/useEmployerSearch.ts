@@ -25,6 +25,18 @@ export function useEmployerSearch() {
     setError(null)
 
     try {
+      // Cache-first: check if company already exists before hitting the pipeline
+      const searchRes = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
+      if (searchRes.ok) {
+        const searchData = await searchRes.json() as { hit?: boolean; results?: Array<{ slug: string }> }
+        if (searchData.hit && searchData.results?.[0]) {
+          router.push(`/brief/${searchData.results[0].slug}`)
+          setIsSearching(false)
+          return true
+        }
+      }
+
+      // Cache miss: start the research pipeline
       const res = await fetch('/api/pipeline/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
