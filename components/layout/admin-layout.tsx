@@ -1,15 +1,18 @@
 import Link from 'next/link'
-import { Activity, AlertTriangle, FileText, List, RefreshCw, Settings, Shield, Home } from 'lucide-react'
+import { Activity, AlertTriangle, FileText, List, Settings, Shield, Home, Users, CreditCard, Unlock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { href: '/admin',                   label: 'Overview',          icon: Home          },
-  { href: '/admin/runs',              label: 'Pipeline Runs',     icon: Activity      },
-  { href: '/admin/pipeline-failures', label: 'Failed Pipelines',  icon: AlertTriangle },
-  { href: '/admin/evidence',          label: 'Evidence Queue',    icon: FileText      },
-  { href: '/admin/sources',           label: 'Source Queue',      icon: List          },
-  { href: '/admin/audit',             label: 'Audit Log',         icon: Shield        },
-  { href: '/admin/tiers',             label: 'Tier Rules',        icon: Settings      },
+  { href: '/admin',                        label: 'Overview',            icon: Home          },
+  { href: '/admin/users',                  label: 'Users',               icon: Users         },
+  { href: '/admin/credit-transactions',    label: 'Credit Transactions', icon: CreditCard    },
+  { href: '/admin/brief-unlocks',          label: 'Brief Unlocks',       icon: Unlock        },
+  { href: '/admin/runs',                   label: 'Pipeline Runs',       icon: Activity      },
+  { href: '/admin/pipeline-failures',      label: 'Failed Pipelines',    icon: AlertTriangle },
+  { href: '/admin/evidence',               label: 'Evidence Queue',      icon: FileText      },
+  { href: '/admin/sources',                label: 'Source Queue',        icon: List          },
+  { href: '/admin/audit',                  label: 'Audit Log',           icon: Shield        },
+  { href: '/admin/tiers',                  label: 'Tier Rules',          icon: Settings      },
 ]
 
 interface AdminLayoutProps {
