@@ -53,11 +53,18 @@ export async function GET(request: NextRequest) {
   )
 
   // Search companies by slug or name
-  const { data: companies } = await supabase
+  const { data: companies, error: searchError } = await supabase
     .from('companies')
     .select('id, slug, name, industry, headquarters')
     .or(`slug.ilike.%${normalized}%,name.ilike.%${q}%`)
     .limit(5)
+
+  if (searchError) {
+    console.error('[search] DB error:', searchError.message, { q, normalized })
+    return NextResponse.json({ hit: false, normalizedQuery: normalized, _dbError: searchError.message })
+  }
+
+  console.log('[search]', { q, normalized, rowsReturned: companies?.length ?? 0 })
 
   const results: { id: string; slug: string; name: string; industry?: string; country?: string }[] = []
   const seen = new Set<string>()
