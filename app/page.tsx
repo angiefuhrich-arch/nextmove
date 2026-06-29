@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Search, BarChart3, Shield, ChevronDown, ChevronUp,
+  BarChart3, Shield, ChevronDown,
   FileText, Landmark, Globe, Newspaper, Users, Star, Check,
-  HelpCircle, Building2, Sparkles, Zap, GitCompare, Bookmark, Award, Target,
+  HelpCircle, Building2, Sparkles, Zap, GitCompare, Bookmark, Award, Target, Search,
 } from 'lucide-react'
 import { Constellation } from '@/components/scarsian/Constellation'
 import { Footer } from '@/components/scarsian/Footer'
+import { SearchBox } from '@/components/scarsian/SearchBox'
 import { useEmployerSearch } from '@/lib/hooks/useEmployerSearch'
 const trustSources = [
   { icon: FileText, label: 'SEC Filings' },
@@ -49,21 +50,16 @@ const features = [
   { icon: Target, title: 'For You', desc: 'Set your priorities and every score adapts. Salary, growth, stability — your way.' },
 ]
 
-const POPULAR_SEARCHES = ['Goldman Sachs', 'Google HK', 'HSBC', 'Cathay Pacific']
+const POPULAR_SEARCHES = ['HSBC Hong Kong', 'Google', 'OpenAI', 'Deloitte', 'Cathay Pacific', 'Tencent']
 
 export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [launchingQuery, setLaunchingQuery] = useState<string | null>(null)
   const { search } = useEmployerSearch()
 
-  const openSearch = () => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))
-  }
-
   const handlePopularSearch = async (query: string) => {
     if (launchingQuery) return
     setLaunchingQuery(query)
-    console.log('[popular-search] clicked:', query)
     await search(query)
     setLaunchingQuery(null)
   }
@@ -104,18 +100,13 @@ export default function HomePage() {
           </motion.p>
 
           {/* Search bar */}
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.6 }}
-            onClick={openSearch}
-            className="mt-10 w-full max-w-[680px] flex items-center gap-4 px-7 py-[18px] rounded-2xl bg-white border border-divider text-ink-tertiary hover:text-ink-secondary hover:border-brand/30 hover:shadow-search transition-all duration-300 shadow-card"
+            className="mt-10 w-full max-w-[680px]"
           >
-            <Search className="w-6 h-6" />
-            <span className="text-lg">Search any employer...</span>
-            <div className="ml-auto flex items-center gap-1 text-[11px] text-ink-quaternary border border-divider rounded px-2 py-0.5">
-              <span>⌘K</span>
-            </div>
-          </motion.button>
+            <SearchBox id="hero-search-box" size="hero" placeholder="Search any employer…" />
+          </motion.div>
 
           {/* Popular searches */}
           <motion.div
@@ -193,32 +184,6 @@ export default function HomePage() {
               </div>
             ))}
           </motion.div>
-        </div>
-      </section>
-
-      {/* ===== INTELLIGENCE PREVIEW ===== */}
-      <section className="py-24 md:py-28 px-6 bg-surface">
-        <div className="max-w-[720px] mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mb-8"
-          >
-            <h2 className="text-3xl md:text-[44px] font-bold text-ink tracking-[-1px] mb-3">Search any employer</h2>
-            <p className="text-sm text-ink-secondary leading-relaxed max-w-[480px] mx-auto">
-              Type any company name to get a live Intelligence Brief built from public records, filings, and verified sources.
-            </p>
-          </motion.div>
-          <motion.button
-            initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-            onClick={openSearch}
-            className="w-full max-w-[560px] flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border border-divider shadow-card hover:border-brand/30 hover:shadow-elevated transition-all duration-300 text-ink-tertiary hover:text-ink-secondary"
-          >
-            <Search className="w-5 h-5" />
-            <span className="text-base">Search any employer...</span>
-            <div className="ml-auto flex items-center gap-1 text-[11px] text-ink-quaternary border border-divider rounded px-2 py-0.5">
-              <span>⌘K</span>
-            </div>
-          </motion.button>
         </div>
       </section>
 
@@ -335,15 +300,13 @@ export default function HomePage() {
           >
             Your career priorities. Our intelligence. The right decision.
           </motion.p>
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }} transition={{ delay: 0.2 }}
-            onClick={openSearch}
-            className="inline-flex items-center gap-2.5 px-8 py-4 bg-brand hover:bg-brand-hover text-white font-semibold rounded-xl text-sm transition-all shadow-card"
+            className="max-w-[480px] mx-auto"
           >
-            <Search className="w-4 h-4" />
-            Search an Employer
-          </motion.button>
+            <SearchBox size="hero" placeholder="Search any employer…" />
+          </motion.div>
           <p className="mt-4 text-[11px] text-ink-quaternary">Free to search. Unlock full briefs with credits.</p>
         </div>
       </section>

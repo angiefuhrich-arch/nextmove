@@ -2,65 +2,83 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import { Search, Command } from 'lucide-react'
-import { CommandPalette } from './CommandPalette'
+import { useState, useEffect, useRef } from 'react'
+import { SearchBox } from './SearchBox'
 
 export function TopNavBar() {
   const pathname = usePathname()
   const isHome = pathname === '/'
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [showNavSearch, setShowNavSearch] = useState(false)
+  const navInputRef = useRef<HTMLInputElement>(null)
 
+  // On home: observe the hero search box and show navbar search when it scrolls off screen
+  useEffect(() => {
+    if (!isHome) return
+
+    const target = document.getElementById('hero-search-box')
+    if (!target) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => { setShowNavSearch(!entry.isIntersecting) },
+      { threshold: 0, rootMargin: '-64px 0px 0px 0px' },
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [isHome])
+
+  // Cmd+K: focus whichever search is active
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setPaletteOpen(prev => !prev)
+        if (isHome) {
+          // If hero is visible, focus hero input; otherwise focus nav input
+          const heroInput = document.querySelector<HTMLInputElement>('#hero-search-box input')
+          if (heroInput && !showNavSearch) {
+            heroInput.focus()
+          } else {
+            navInputRef.current?.focus()
+          }
+        } else {
+          navInputRef.current?.focus()
+        }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [isHome, showNavSearch])
+
+  const showSearch = !isHome || showNavSearch
 
   return (
-    <>
-      <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-divider z-[100] flex items-center justify-between px-4 md:px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <ScarsianIcon />
-          <span className="text-sm font-bold text-ink hidden sm:inline">Scarsian</span>
+    <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-divider z-[100] flex items-center justify-between px-4 md:px-6 gap-3">
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0">
+        <ScarsianIcon />
+        <span className="text-sm font-bold text-ink hidden sm:inline">Scarsian</span>
+      </Link>
+
+      {/* Center: search — only when not on home or hero has scrolled off */}
+      <div className={`flex-1 max-w-[480px] mx-auto transition-all duration-200 ${showSearch ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <SearchBox
+          size="compact"
+          placeholder="Search any employer…"
+          inputRef={navInputRef}
+        />
+      </div>
+
+      {/* Right */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Link
+          href="/wallet"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-light border border-brand/20 text-[11px] hover:bg-brand/10 transition-all"
+        >
+          <span className="text-brand font-semibold">47</span>
+          <span className="text-brand/70 hidden sm:inline">credits</span>
         </Link>
-
-        {/* Center: search trigger */}
-        {!isHome && (
-          <button
-            onClick={() => setPaletteOpen(true)}
-            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-surface-subdued border border-divider text-ink-tertiary hover:text-ink-secondary hover:border-divider transition-all text-xs"
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span>Search companies...</span>
-            <div className="ml-2 flex items-center gap-0.5 text-[9px] text-ink-quaternary border border-divider rounded px-1 py-0.5">
-              <Command className="w-2.5 h-2.5" />
-              <span>K</span>
-            </div>
-          </button>
-        )}
-
-        {/* Right */}
-        <div className="flex items-center gap-2">
-          <Link
-            href="/wallet"
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-light border border-brand/20 text-[11px] hover:bg-brand/10 transition-all"
-          >
-            <span className="text-brand font-semibold">47</span>
-            <span className="text-brand/70 hidden sm:inline">credits</span>
-          </Link>
-          <UserAvatar />
-        </div>
-      </header>
-
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </>
+        <UserAvatar />
+      </div>
+    </header>
   )
 }
 
