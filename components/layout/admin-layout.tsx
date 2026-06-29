@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/admin/audit',                  label: 'Audit Log',           icon: Shield        },
   { href: '/admin/tiers',                  label: 'Tier Rules',          icon: Settings      },
   { href: '/admin/team',                   label: 'Team',                icon: UsersRound    },
+  { href: '/admin/settings',               label: 'Settings',            icon: Settings      },
 ]
 
 interface AdminLayoutProps {

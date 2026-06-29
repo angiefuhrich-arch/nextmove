@@ -22,8 +22,9 @@ const ADMIN_REQUIRED_PREFIXES = [
 const PUBLIC_PREFIXES = [
   '/_next',
   '/favicon.ico',
-  '/api/search',       // search is rate-limited but does not require auth
-  '/api/stripe',       // Stripe webhooks use signature verification, not session auth
+  '/api/search',           // search is rate-limited but does not require auth
+  '/api/stripe',           // Stripe webhooks use signature verification, not session auth
+  '/api/owner-bootstrap',  // bootstrap route promotes OWNER_EMAIL before admin flag is set
 ]
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {
@@ -84,6 +85,13 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (!profile?.is_admin) {
+      // If this is the designated owner, send them to the bootstrap route to get promoted
+      const ownerEmail = process.env.OWNER_EMAIL
+      if (ownerEmail && user.email?.toLowerCase() === ownerEmail.toLowerCase()) {
+        const bootstrapUrl = new URL('/api/owner-bootstrap', request.url)
+        bootstrapUrl.searchParams.set('next', pathname)
+        return NextResponse.redirect(bootstrapUrl)
+      }
       // Return 403 for API routes, redirect for pages
       if (pathname.startsWith('/api/')) {
         return new NextResponse(JSON.stringify({ error: 'Forbidden.' }), {
