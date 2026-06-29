@@ -96,7 +96,7 @@ export default function HomePage() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
             className="text-base md:text-lg text-ink-secondary max-w-[480px] leading-relaxed mb-10"
           >
-            Research employers with the same rigor investors research companies.
+            Your career priorities. Our intelligence. The right decision.
           </motion.p>
 
           {/* Search bar */}
@@ -282,32 +282,6 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ===== CTA ===== */}
-      <section className="py-24 md:py-28 px-6 bg-surface">
-        <div className="max-w-[520px] mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-            className="text-3xl md:text-[44px] font-bold text-ink mb-4 tracking-[-1px]"
-          >
-            Make your next move with confidence.
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="text-sm text-ink-secondary mb-8"
-          >
-            Your career priorities. Our intelligence. The right decision.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }} transition={{ delay: 0.2 }}
-            className="max-w-[480px] mx-auto"
-          >
-            <SearchBox size="hero" placeholder="Search any employer…" />
-          </motion.div>
-          <p className="mt-4 text-[11px] text-ink-quaternary">Free to search. Unlock full briefs with credits.</p>
         </div>
       </section>
 
