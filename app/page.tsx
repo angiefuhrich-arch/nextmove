@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   BarChart3, Shield, ChevronDown,
-  FileText, Landmark, Globe, Newspaper, Users, Star, Check,
+  FileText, Globe, BarChart2, BookOpen, Building, Check,
   HelpCircle, Building2, Sparkles, Zap, GitCompare, Bookmark, Award, Target, Search,
 } from 'lucide-react'
 import { Constellation } from '@/components/scarsian/Constellation'
@@ -12,25 +12,23 @@ import { Footer } from '@/components/scarsian/Footer'
 import { SearchBox } from '@/components/scarsian/SearchBox'
 import { useEmployerSearch } from '@/lib/hooks/useEmployerSearch'
 const trustSources = [
-  { icon: FileText, label: 'SEC Filings' },
-  { icon: FileText, label: 'Annual Reports' },
-  { icon: Landmark, label: 'Government Records' },
-  { icon: Globe, label: 'Company Websites' },
-  { icon: Newspaper, label: 'Verified News' },
-  { icon: BarChart3, label: 'Public Financials' },
-  { icon: Users, label: 'LinkedIn Data' },
-  { icon: Star, label: 'Glassdoor' },
+  { icon: FileText,   label: 'Public Information'    },
+  { icon: Building,   label: 'Company Disclosures'   },
+  { icon: BookOpen,   label: 'Regulatory Filings'    },
+  { icon: BarChart2,  label: 'Financial Reports'     },
+  { icon: Globe,      label: 'Industry Publications' },
+  { icon: Building2,  label: 'Corporate Websites'    },
 ]
 
 const trustChecks = [
-  'Evidence-based',
-  'Source verified',
-  'Updated continuously',
-  'No anonymous rankings',
+  'Evidence-Informed',
+  'Transparent Methodology',
+  'Publicly Available Information',
+  'Regularly Updated',
 ]
 
 const faqs = [
-  { q: 'Where does Scarsian\'s data come from?', a: 'Every Intelligence Brief is built from independently verified public sources: SEC filings, corporate annual reports, government registries, trusted business news, company websites, and verified professional data. We never use anonymous reviews or unverified claims.' },
+  { q: 'Where does Scarsian\'s data come from?', a: 'Every Intelligence Brief is built from publicly available information including company disclosures, regulatory filings, financial reports, industry publications, and corporate websites. We apply a structured methodology to analyze and score each employer consistently.' },
   { q: 'How often is Scarsian updated?', a: 'Our platform continuously monitors trusted sources. The Scarsian Index and Evidence Confidence scores update as new verified information becomes available. Most employers are refreshed within 24–72 hours.' },
   { q: 'Can companies pay to improve their score?', a: 'No. The Scarsian Index is calculated entirely from publicly available evidence using our proprietary methodology. No company can influence their score through payment or partnership.' },
   { q: 'How is the Scarsian Index calculated?', a: 'The Scarsian Index is a composite score derived from five core dimensions: Financial Strength, Leadership, Career Growth, Compensation, and Culture. Each dimension is scored based on verified evidence, then weighted and combined into a single 0–100 score.' },
@@ -175,19 +173,19 @@ export default function HomePage() {
         <div className="max-w-[800px] mx-auto">
           <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-ink tracking-[-0.5px] mb-3">Trusted Intelligence</h2>
-            <p className="text-sm text-ink-secondary max-w-[440px] mx-auto leading-relaxed">
-              Every employer profile is built from independently verified public sources.
+            <h2 className="text-2xl md:text-3xl font-bold text-ink tracking-[-0.5px] mb-3">Independent Employer Intelligence</h2>
+            <p className="text-sm text-ink-secondary max-w-[520px] mx-auto leading-relaxed">
+              Employer profiles are built using publicly available information and analyzed through Scarsian's structured evaluation methodology to provide consistent, evidence-informed insights for job seekers.
             </p>
           </motion.div>
 
           {/* Source badges with icons */}
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="flex flex-wrap justify-center gap-3 mb-10">
+            className="flex flex-wrap justify-center gap-3 mb-12">
             {trustSources.map((src) => (
-              <div key={src.label} className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-subdued border border-divider">
-                <src.icon className="w-3.5 h-3.5 text-brand/60" />
-                <span className="text-[11px] font-medium text-ink-secondary">{src.label}</span>
+              <div key={src.label} className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-surface-subdued border border-divider">
+                <src.icon className="w-3.5 h-3.5 text-brand/60 flex-shrink-0" />
+                <span className="text-[11px] font-medium text-ink-secondary tracking-wide">{src.label}</span>
               </div>
             ))}
           </motion.div>
