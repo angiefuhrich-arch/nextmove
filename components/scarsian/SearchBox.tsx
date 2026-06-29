@@ -154,15 +154,15 @@ export function SearchBox({ id, placeholder = 'Search any employer…', size = '
     <div ref={containerRef} className="relative w-full" id={id}>
       {/* Input */}
       <div
-        className={`flex items-center gap-3 bg-white border rounded-2xl transition-all duration-200 ${
+        className={`flex items-center bg-white border rounded-2xl transition-all duration-300 ${
           open
-            ? 'border-brand/40 shadow-elevated'
-            : 'border-divider shadow-card hover:border-brand/20 hover:shadow-search'
-        } ${isHero ? 'px-6 py-[17px]' : 'px-4 py-2.5'}`}
+            ? 'border-brand/50 shadow-[0_0_0_4px_rgba(14,90,94,0.08),0_4px_24px_rgba(0,0,0,0.10)]'
+            : 'border-divider shadow-card hover:border-brand/25 hover:shadow-[0_2px_16px_rgba(0,0,0,0.08)]'
+        } ${isHero ? 'gap-4 px-6 py-[18px]' : 'gap-3 px-4 py-2.5'}`}
       >
         {isSearching || isLaunching
           ? <Loader2 className={`flex-shrink-0 text-brand animate-spin ${isHero ? 'w-5 h-5' : 'w-4 h-4'}`} />
-          : <Search className={`flex-shrink-0 text-ink-quaternary ${isHero ? 'w-5 h-5' : 'w-4 h-4'}`} />
+          : <Search className={`flex-shrink-0 transition-colors ${isHero ? 'w-5 h-5 text-brand/60' : 'w-4 h-4 text-ink-quaternary'}`} />
         }
         <input
           ref={inputRef}
@@ -179,7 +179,7 @@ export function SearchBox({ id, placeholder = 'Search any employer…', size = '
           onChange={e => { setQuery(e.target.value); setSelectedIndex(-1); clearError(); setOpen(true) }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          className={`flex-1 bg-transparent text-ink placeholder-ink-quaternary outline-none ${isHero ? 'text-base' : 'text-sm'}`}
+          className={`flex-1 bg-transparent text-ink placeholder-ink-quaternary/70 outline-none ${isHero ? 'text-lg' : 'text-sm'}`}
         />
         {!isHero && (
           <div className="hidden md:flex items-center gap-0.5 text-[9px] text-ink-quaternary border border-divider rounded px-1.5 py-0.5 flex-shrink-0">

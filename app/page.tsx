@@ -69,76 +69,91 @@ export default function HomePage() {
 
       {/* ===== HERO ===== */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-20 overflow-hidden brand-gradient">
-        {/* Constellation background */}
-        <div className="absolute inset-0 pointer-events-none opacity-40">
-          <Constellation width={1200} height={800} nodeCount={24} opacity={0.06} animated={false} variant="background" />
+        {/* Animated network background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <Constellation width={1400} height={900} nodeCount={32} opacity={0.045} animated={true} variant="background" />
         </div>
-        <div className="relative z-10 max-w-[720px] mx-auto text-center flex flex-col items-center">
+
+        {/* Subtle radial teal glow behind the content */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(14,90,94,0.06) 0%, transparent 70%)' }}
+        />
+
+        <div className="relative z-10 max-w-[640px] mx-auto text-center flex flex-col items-center">
+
           {/* Pre-label */}
           <motion.p
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-            className="text-xs font-semibold uppercase tracking-[3px] text-ink-tertiary mb-6"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[4px] text-brand/60 mb-10"
           >
+            <span className="w-4 h-px bg-brand/30" />
             Career Intelligence
+            <span className="w-4 h-px bg-brand/30" />
           </motion.p>
 
-          {/* Headline */}
+          {/* Headline — forced two-line break for maximum impact */}
           <motion.h1
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }}
-            className="text-5xl md:text-7xl font-bold text-ink tracking-tight leading-[1.05] mb-4"
-            style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.03em' }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="text-[clamp(52px,9vw,88px)] font-bold text-ink leading-[1.02] tracking-[-0.04em] mb-8"
           >
-            Know before you say yes.
+            Know before<br />you say yes.
           </motion.h1>
 
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-            className="text-base md:text-lg text-ink-secondary mb-10"
-            style={{ lineHeight: 1.35 }}
-          >
-            <span className="block">Your career priorities.</span>
-            <span className="block mt-1.5">Our intelligence.</span>
-            <span className="block mt-1.5">The right decision.</span>
-          </motion.p>
-
-          {/* Search bar */}
+          {/* Subtitle — tighter, more distinctive */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="mt-10 w-full max-w-[680px]"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.38 }}
+            className="mb-10 space-y-1"
+          >
+            <p className="text-base text-ink-tertiary tracking-wide">Your career priorities.</p>
+            <p className="text-base font-semibold text-ink-secondary tracking-tight">
+              Evidence. Intelligence. Confidence.
+            </p>
+          </motion.div>
+
+          {/* Search — the product */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="w-full max-w-[620px]"
           >
             <SearchBox id="hero-search-box" size="hero" placeholder="Search any employer…" />
           </motion.div>
 
-          {/* Popular searches */}
+          {/* Popular searches — pill chips */}
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
-            className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-[11px] text-ink-tertiary max-w-[600px]"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.62 }}
+            className="mt-5 flex flex-wrap items-center justify-center gap-2"
           >
-            <span className="text-ink-quaternary mr-1">Popular searches:</span>
-            {POPULAR_SEARCHES.map((s, i, arr) => (
-              <span key={s}>
-                <button
-                  onClick={() => handlePopularSearch(s)}
-                  disabled={!!launchingQuery}
-                  className="hover:text-brand transition-colors underline underline-offset-2 decoration-divider hover:decoration-brand/40 disabled:opacity-60"
-                >
-                  {launchingQuery === s ? 'Searching…' : s}
-                </button>
-                {i < arr.length - 1 && <span className="text-ink-quaternary mx-1">·</span>}
-              </span>
+            {POPULAR_SEARCHES.map(s => (
+              <button
+                key={s}
+                onClick={() => handlePopularSearch(s)}
+                disabled={!!launchingQuery}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all duration-200 disabled:opacity-50 ${
+                  launchingQuery === s
+                    ? 'border-brand/40 bg-brand/8 text-brand'
+                    : 'border-divider bg-white/70 text-ink-tertiary hover:border-brand/30 hover:bg-white hover:text-ink-secondary hover:shadow-sm'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${launchingQuery === s ? 'bg-brand animate-pulse' : 'bg-brand/30'}`} />
+                {launchingQuery === s ? 'Searching…' : s}
+              </button>
             ))}
           </motion.div>
 
-          {/* Value props */}
+          {/* Value props — checkmark style */}
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-            className="mt-12 flex flex-col sm:flex-row items-center gap-5 sm:gap-8"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.72 }}
+            className="mt-12 flex flex-wrap items-center justify-center gap-x-7 gap-y-2"
           >
-            {['Evidence-based scores', 'Verified sources only', 'Executive summaries'].map(s => (
-              <div key={s} className="flex items-center gap-2 text-sm text-ink-tertiary">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand/40" />
+            {[
+              'Evidence-backed',
+              'Verified sources',
+              'AI brief in under 60s',
+            ].map(s => (
+              <div key={s} className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
+                <Check className="w-3.5 h-3.5 text-brand/70 flex-shrink-0" />
                 {s}
               </div>
             ))}
@@ -147,11 +162,11 @@ export default function HomePage() {
 
         {/* Scroll indicator */}
         <motion.button
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}
           onClick={() => document.getElementById('trusted-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce-slow"
         >
-          <ChevronDown className="w-5 h-5 text-ink-tertiary" />
+          <ChevronDown className="w-5 h-5 text-ink-tertiary/60" />
         </motion.button>
       </section>
 
