@@ -94,9 +94,12 @@ export default function HomePage() {
           {/* Subtitle */}
           <motion.p
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-            className="text-base md:text-lg text-ink-secondary max-w-[480px] leading-relaxed mb-10"
+            className="text-base md:text-lg text-ink-secondary mb-10"
+            style={{ lineHeight: 1.35 }}
           >
-            Your career priorities. Our intelligence. The right decision.
+            <span className="block">Your career priorities.</span>
+            <span className="block mt-1.5">Our intelligence.</span>
+            <span className="block mt-1.5">The right decision.</span>
           </motion.p>
 
           {/* Search bar */}
@@ -235,22 +238,6 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ===== EARLY ACCESS ===== */}
-      <section className="py-24 md:py-28 px-6 bg-surface-subdued">
-        <div className="max-w-[600px] mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <div className="w-12 h-12 rounded-2xl bg-white border border-divider flex items-center justify-center mx-auto mb-5 shadow-card">
-              <Users className="w-5 h-5 text-brand" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-ink tracking-[-0.5px] mb-3">Coming Soon</h2>
-            <p className="text-sm text-ink-secondary max-w-[400px] mx-auto leading-relaxed mb-4">
-              Early access feedback will appear here. We&apos;re working with professionals to validate every Intelligence Brief before broader release.
-            </p>
-            <p className="text-[11px] text-ink-quaternary">Trust is more important than social proof.</p>
-          </motion.div>
         </div>
       </section>
 
