@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search, BarChart3, Shield, ChevronDown, ChevronUp,
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react'
 import { Constellation } from '@/components/scarsian/Constellation'
 import { Footer } from '@/components/scarsian/Footer'
+import { useEmployerSearch } from '@/lib/hooks/useEmployerSearch'
 const trustSources = [
   { icon: FileText, label: 'SEC Filings' },
   { icon: FileText, label: 'Annual Reports' },
@@ -49,12 +49,23 @@ const features = [
   { icon: Target, title: 'For You', desc: 'Set your priorities and every score adapts. Salary, growth, stability — your way.' },
 ]
 
+const POPULAR_SEARCHES = ['Goldman Sachs', 'Google HK', 'HSBC', 'Cathay Pacific']
+
 export default function HomePage() {
-  const router = useRouter()
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [launchingQuery, setLaunchingQuery] = useState<string | null>(null)
+  const { search } = useEmployerSearch()
 
   const openSearch = () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))
+  }
+
+  const handlePopularSearch = async (query: string) => {
+    if (launchingQuery) return
+    setLaunchingQuery(query)
+    console.log('[popular-search] clicked:', query)
+    await search(query)
+    setLaunchingQuery(null)
   }
 
   return (
@@ -112,9 +123,15 @@ export default function HomePage() {
             className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-[11px] text-ink-tertiary max-w-[600px]"
           >
             <span className="text-ink-quaternary mr-1">Popular searches:</span>
-            {['Goldman Sachs', 'Google HK', 'HSBC', 'Cathay Pacific'].map((s, i, arr) => (
+            {POPULAR_SEARCHES.map((s, i, arr) => (
               <span key={s}>
-                <button onClick={openSearch} className="hover:text-brand transition-colors underline underline-offset-2 decoration-divider hover:decoration-brand/40">{s}</button>
+                <button
+                  onClick={() => handlePopularSearch(s)}
+                  disabled={!!launchingQuery}
+                  className="hover:text-brand transition-colors underline underline-offset-2 decoration-divider hover:decoration-brand/40 disabled:opacity-60"
+                >
+                  {launchingQuery === s ? 'Searching…' : s}
+                </button>
                 {i < arr.length - 1 && <span className="text-ink-quaternary mx-1">·</span>}
               </span>
             ))}

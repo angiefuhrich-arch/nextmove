@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, Loader2, AlertCircle } from 'lucide-react'
+import { useEmployerSearch } from '@/lib/hooks/useEmployerSearch'
 
 interface SearchResult {
   id: string
@@ -22,19 +22,17 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [isLaunching, setIsLaunching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const router = useRouter()
+
+  const { search, isSearching: isLaunching, error, clearError } = useEmployerSearch()
 
   const displayResults = results.length > 0 ? results : []
 
   const searchAPI = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return }
     setIsSearching(true)
-    setError(null)
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
       if (!res.ok) { setResults([]); return }
@@ -66,86 +64,27 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       wasOpenRef.current = false
       setQuery('')
       setResults([])
-      setError(null)
+      clearError()
     }
-  }, [open])
-
-  const startPipeline = useCallback(async (slug: string, name: string): Promise<boolean> => {
-    console.log('[pipeline] starting for:', { slug, name })
-    const res = await fetch('/api/pipeline/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entitySlug: slug, entityName: name, entityType: 'employer' }),
-    })
-
-    console.log('[pipeline] response status:', res.status)
-
-    if (res.status === 401) {
-      // Not logged in — redirect to login, preserve return URL
-      const returnTo = encodeURIComponent(window.location.pathname + window.location.search)
-      router.push(`/login?next=${returnTo}`)
-      return false
-    }
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}))
-      console.error('[pipeline] error response:', errData)
-      setError('Could not start research. Please try again.')
-      setIsLaunching(false)
-      return false
-    }
-
-    const data = await res.json()
-    console.log('[pipeline] success response:', data)
-
-    if (data.briefReady) {
-      const dest = `/brief/${data.entitySlug ?? slug}`
-      console.log('[pipeline] cache hit → routing to', dest)
-      router.push(dest)
-    } else if (data.runId) {
-      const dest = `/building/${slug}?runId=${data.runId}`
-      console.log('[pipeline] running → routing to', dest)
-      router.push(dest)
-    } else {
-      console.error('[pipeline] no runId and no briefReady in response:', data)
-      setError('Could not start research. Please try again.')
-      setIsLaunching(false)
-      return false
-    }
-    return true
-  }, [router])
+  }, [open, clearError])
 
   const navigate = useCallback(async (slug: string, name: string) => {
     onClose()
-    setIsLaunching(true)
-    setError(null)
-    try {
-      await startPipeline(slug, name)
-    } catch (err) {
-      console.error('[pipeline] unexpected error:', err)
-      setError('Could not start research. Please try again.')
-      setIsLaunching(false)
-    }
-  }, [onClose, startPipeline])
+    await search(name)
+  }, [onClose, search])
 
   const handleSubmitQuery = useCallback(async () => {
     if (!query.trim()) return
-    const slug = query.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    setIsLaunching(true)
-    setError(null)
-
-    // If we already have results from the live search, navigate to the top hit
+    // If we have live results, navigate to the top match
     if (displayResults.length > 0) {
       onClose()
-      await startPipeline(displayResults[0].slug, displayResults[0].name)
+      await search(displayResults[0].name)
       return
     }
-
-    // No cached results — kick off pipeline for the typed query
+    // No cached results — pipeline the typed query directly
     onClose()
-    console.log('[search] no results for query, starting pipeline:', { query: query.trim(), slug })
-    await startPipeline(slug, query.trim())
-  }, [query, displayResults, onClose, startPipeline])
+    await search(query.trim())
+  }, [query, displayResults, onClose, search])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -190,7 +129,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             aria-activedescendant={selectedIndex >= 0 ? `result-${selectedIndex}` : undefined}
             className="relative w-full max-w-[640px] mx-4 bg-navy-dark border border-navy-light rounded-3xl shadow-modal overflow-hidden"
           >
-            {/* Live region for screen readers */}
             <div aria-live="polite" className="sr-only">
               {query.length >= 2 ? `${displayResults.length} results available` : ''}
             </div>
@@ -203,7 +141,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={e => { setQuery(e.target.value); setSelectedIndex(0); setError(null) }}
+                onChange={e => { setQuery(e.target.value); setSelectedIndex(0); clearError() }}
                 onKeyDown={handleKeyDown}
                 placeholder="Search any employer…"
                 aria-autocomplete="list"
