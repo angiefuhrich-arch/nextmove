@@ -12,7 +12,9 @@ function BuildingPageInner() {
   const { entitySlug } = useParams<{ entitySlug: string }>()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const runId = searchParams.get('runId')
+  const rawRunId = searchParams.get('runId')
+  // Guard against the literal string "undefined" leaking into the URL
+  const runId = rawRunId && rawRunId !== 'undefined' ? rawRunId : null
 
   const [status, setStatus] = useState<PipelineStatus>('queued')
   const [stepLog, setStepLog] = useState<StepLogEntry[]>([])

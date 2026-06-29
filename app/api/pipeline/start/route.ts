@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     .from('entities')
     .select('id, slug, name, refresh_policy, last_brief_generated_at, refresh_due_at')
     .or(`slug.eq.${slug},name.ilike.${entityName}`)
-    .eq('entity_type', entityType ?? 'company')
     .maybeSingle()
 
   if (entity) {

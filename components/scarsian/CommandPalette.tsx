@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, X, Loader2 } from 'lucide-react'
+import { Search, X, Loader2, AlertCircle } from 'lucide-react'
 
 interface SearchResult {
   id: string
@@ -24,6 +24,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [isSearching, setIsSearching] = useState(false)
   const [isLaunching, setIsLaunching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
@@ -33,19 +34,21 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const searchAPI = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return }
     setIsSearching(true)
+    setError(null)
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
-      if (!res.ok) return
+      if (!res.ok) { setResults([]); return }
       const data = await res.json()
+      console.log('[search] query:', q, 'response:', data)
       if (data.hit && data.results) {
-        setResults(data.results.map((r: { id: string; slug: string; name: string; industry?: string }) => ({
-          ...r,
-        })))
+        setResults(data.results.map((r: { id: string; slug: string; name: string; industry?: string }) => ({ ...r })))
       } else {
         setResults([])
       }
-    } catch { /* use local fallback */ }
-    finally { setIsSearching(false) }
+    } catch (err) {
+      console.warn('[search] fetch error:', err)
+      setResults([])
+    } finally { setIsSearching(false) }
   }, [])
 
   useEffect(() => {
@@ -63,47 +66,86 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       wasOpenRef.current = false
       setQuery('')
       setResults([])
+      setError(null)
     }
   }, [open])
+
+  const startPipeline = useCallback(async (slug: string, name: string): Promise<boolean> => {
+    console.log('[pipeline] starting for:', { slug, name })
+    const res = await fetch('/api/pipeline/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entitySlug: slug, entityName: name, entityType: 'employer' }),
+    })
+
+    console.log('[pipeline] response status:', res.status)
+
+    if (res.status === 401) {
+      // Not logged in — redirect to login, preserve return URL
+      const returnTo = encodeURIComponent(window.location.pathname + window.location.search)
+      router.push(`/login?next=${returnTo}`)
+      return false
+    }
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}))
+      console.error('[pipeline] error response:', errData)
+      setError('Could not start research. Please try again.')
+      setIsLaunching(false)
+      return false
+    }
+
+    const data = await res.json()
+    console.log('[pipeline] success response:', data)
+
+    if (data.briefReady) {
+      const dest = `/brief/${data.entitySlug ?? slug}`
+      console.log('[pipeline] cache hit → routing to', dest)
+      router.push(dest)
+    } else if (data.runId) {
+      const dest = `/building/${slug}?runId=${data.runId}`
+      console.log('[pipeline] running → routing to', dest)
+      router.push(dest)
+    } else {
+      console.error('[pipeline] no runId and no briefReady in response:', data)
+      setError('Could not start research. Please try again.')
+      setIsLaunching(false)
+      return false
+    }
+    return true
+  }, [router])
 
   const navigate = useCallback(async (slug: string, name: string) => {
     onClose()
     setIsLaunching(true)
+    setError(null)
     try {
-      const res = await fetch('/api/pipeline/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entitySlug: slug, entityName: name }),
-      })
-      const data = await res.json()
-      if (data.briefReady) {
-        router.push(`/brief/${slug}`)
-      } else {
-        router.push(`/building/${slug}?runId=${data.runId}`)
-      }
-    } catch {
-      router.push(`/building/${slug}`)
+      await startPipeline(slug, name)
+    } catch (err) {
+      console.error('[pipeline] unexpected error:', err)
+      setError('Could not start research. Please try again.')
+      setIsLaunching(false)
     }
-  }, [router, onClose])
+  }, [onClose, startPipeline])
 
   const handleSubmitQuery = useCallback(async () => {
     if (!query.trim()) return
-    onClose()
-    const slug = query.trim().toLowerCase().replace(/\s+/g, '-')
-    const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`)
-    const data = await res.json().catch(() => ({ hit: false }))
-    if (data.hit && data.results?.[0]) {
-      router.push(`/brief/${data.results[0].slug}`)
-    } else {
-      const startRes = await fetch('/api/pipeline/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entitySlug: slug, entityName: query.trim() }),
-      })
-      const startData = await startRes.json()
-      router.push(`/building/${slug}?runId=${startData.runId}`)
+    const slug = query.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    setIsLaunching(true)
+    setError(null)
+
+    // If we already have results from the live search, navigate to the top hit
+    if (displayResults.length > 0) {
+      onClose()
+      await startPipeline(displayResults[0].slug, displayResults[0].name)
+      return
     }
-  }, [query, router, onClose])
+
+    // No cached results — kick off pipeline for the typed query
+    onClose()
+    console.log('[search] no results for query, starting pipeline:', { query: query.trim(), slug })
+    await startPipeline(slug, query.trim())
+  }, [query, displayResults, onClose, startPipeline])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -161,7 +203,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
+                onChange={e => { setQuery(e.target.value); setSelectedIndex(0); setError(null) }}
                 onKeyDown={handleKeyDown}
                 placeholder="Search any employer…"
                 aria-autocomplete="list"
@@ -175,7 +217,12 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             </div>
 
             <div id="search-results-listbox" role="listbox" aria-label="Search results" className="max-h-[400px] overflow-y-auto p-2">
-              {displayResults.length > 0 ? displayResults.map((company, i) => (
+              {error ? (
+                <div className="flex items-center gap-3 px-4 py-4 text-red-400">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              ) : displayResults.length > 0 ? displayResults.map((company, i) => (
                 <button
                   key={company.slug}
                   id={`result-${i}`}
@@ -203,13 +250,19 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               )) : query.length >= 2 ? (
                 <button
                   onClick={handleSubmitQuery}
-                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-white/[0.06] border border-dashed border-navy-light transition-colors"
+                  disabled={isLaunching}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-white/[0.06] border border-dashed border-navy-light transition-colors disabled:opacity-50"
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <Search className="w-4 h-4 text-blue-400" />
+                    {isLaunching
+                      ? <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                      : <Search className="w-4 h-4 text-blue-400" />
+                    }
                   </div>
                   <div className="text-left">
-                    <div className="text-sm font-medium text-white">Build intelligence for &quot;{query}&quot;</div>
+                    <div className="text-sm font-medium text-white">
+                      {isLaunching ? 'Starting research…' : `Build Intelligence Brief for "${query}"`}
+                    </div>
                     <div className="text-xs text-white/40">No cached brief found — run on-demand pipeline (~20s)</div>
                   </div>
                 </button>
