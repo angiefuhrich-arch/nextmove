@@ -138,7 +138,7 @@ export default async function BriefPage({
   const creditsBalance = (profileRaw?.data as { credits?: number } | null)?.credits ?? 0
 
   // Parallel data fetches — v4 intelligence tables first, fall back to legacy pipeline tables
-  let legacySnapshot: typeof snapshot = null
+  let legacySnapshot: import('@/lib/dal/snapshots').SnapshotRow | null = null
   if (legacyCompanyId) {
     const { data: ls } = await admin
       .from('company_score_snapshots')
