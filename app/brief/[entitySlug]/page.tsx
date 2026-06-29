@@ -92,10 +92,12 @@ export default async function BriefPage({
 
   // Entity lookup — v4 entities table first, fall back to legacy companies
   let entityId: string | null = null
+  let legacyCompanyId: string | null = null
   let entityName = ''
   let entityIndustry: string | null = null
   let entityMarket: string | null = null
 
+  const admin = createAdminClient()
   const entity = await getEntityBySlug(entitySlug, 'company')
   if (entity) {
     entityId = entity.id
@@ -104,13 +106,13 @@ export default async function BriefPage({
     entityIndustry = (entity.metadata as Record<string, string> | null)?.industry ?? null
   } else {
     // Try legacy companies table
-    const admin = createAdminClient()
     const { data: legacy } = await admin
       .from('companies')
       .select('id,name,slug,industry,headquarters')
       .eq('slug', entitySlug)
       .maybeSingle()
     if (!legacy) notFound()
+    legacyCompanyId = legacy.id
     entityName = legacy.name
     entityIndustry = legacy.industry ?? null
     entityMarket = legacy.headquarters ?? null
@@ -121,20 +123,71 @@ export default async function BriefPage({
   const { data: { user } } = await supabase.auth.getUser()
   const userId = user?.id ?? null
 
+  // Check admin status — admins always see the full brief
+  const isAdmin = userId
+    ? (user?.app_metadata?.is_admin === true ||
+       await admin.from('profiles').select('is_admin').eq('id', userId).single()
+         .then(r => r.data?.is_admin === true))
+    : false
+
   const [unlockedRaw, profileRaw] = await Promise.all([
     userId && entityId ? hasUnlockedBrief(userId, entityId) : Promise.resolve(false),
     userId ? supabase.from('profiles').select('credits').eq('id', userId).single() : Promise.resolve({ data: null }),
   ])
-  const isUnlocked = unlockedRaw as boolean
+  const isUnlocked = isAdmin || (unlockedRaw as boolean)
   const creditsBalance = (profileRaw?.data as { credits?: number } | null)?.credits ?? 0
 
-  // Parallel data fetches — all from real intelligence tables
+  // Parallel data fetches — v4 intelligence tables first, fall back to legacy pipeline tables
+  let legacySnapshot: typeof snapshot = null
+  if (legacyCompanyId) {
+    const { data: ls } = await admin
+      .from('company_score_snapshots')
+      .select('scarsian_score,career_growth_score,career_risk_score,market_value_score,career_fit_score,gfi_score,career_alpha,confidence_score,verdict,analyst_note')
+      .eq('company_id', legacyCompanyId)
+      .eq('status', 'approved')
+      .order('approved_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (ls) {
+      legacySnapshot = {
+        id: legacyCompanyId,
+        entity_id: legacyCompanyId,
+        formula_version_id: '',
+        cgs_score: ls.career_growth_score,
+        crs_score: ls.career_risk_score,
+        mvs_score: ls.market_value_score,
+        cfs_score: ls.career_fit_score,
+        gfi_score: ls.gfi_score,
+        scarsian_score: ls.scarsian_score,
+        career_alpha: ls.career_alpha,
+        // confidence_score stored 0–100 in legacy table; brief renders as fraction (*100 → %)
+        confidence_score: (ls.confidence_score ?? 0) / 100,
+        insufficient_data: false,
+        verdict: ls.verdict ?? null,
+        momentum_adjustment: null,
+        volatility_penalty: null,
+        base_score: null,
+        engine_output_ids: [],
+        signal_ids: [],
+        calculation_timestamp: new Date().toISOString(),
+        status: 'approved' as const,
+        approved_at: null,
+        approved_by: null,
+        analyst_note: ls.analyst_note ?? null,
+        supersedes_id: null,
+        legacy_snapshot_id: null,
+        created_at: new Date().toISOString(),
+        created_by: null,
+      }
+    }
+  }
+
   const [snapshot, report, signals, evidence, trendPoints] = await Promise.all([
-    entityId ? getLatestApprovedSnapshot(entityId) : null,
-    entityId ? getPublishedReportForEntity(entityId) : null,
-    entityId ? getActiveSignalsForEntity(entityId) : [],
-    entityId ? getEvidenceForEntity(entityId, { limit: 50 }) : [],
-    entityId ? getTrendPoints(entityId, 12) : [],
+    entityId ? getLatestApprovedSnapshot(entityId) : Promise.resolve(legacySnapshot),
+    entityId ? getPublishedReportForEntity(entityId) : Promise.resolve(null),
+    entityId ? getActiveSignalsForEntity(entityId) : Promise.resolve([]),
+    entityId ? getEvidenceForEntity(entityId, { limit: 50 }) : Promise.resolve([]),
+    entityId ? getTrendPoints(entityId, 12) : Promise.resolve([]),
   ])
 
   const indexScore = snapshot?.scarsian_score ?? null

@@ -39,6 +39,33 @@ export async function POST(request: NextRequest) {
   const ip      = getClientIp(request)
   const admin   = createAdminClient()
 
+  // ── Cache-first: check legacy companies table first ─────────────────────────
+  const { data: legacyCompany } = await admin
+    .from('companies')
+    .select('id, slug, name')
+    .or(`slug.eq.${slug},name.ilike.${entityName}`)
+    .maybeSingle()
+
+  if (legacyCompany) {
+    const { data: legacySnapshot } = await admin
+      .from('company_score_snapshots')
+      .select('id')
+      .eq('company_id', legacyCompany.id)
+      .eq('status', 'approved')
+      .limit(1)
+      .maybeSingle()
+
+    if (legacySnapshot) {
+      console.log('[pipeline:legacy_cache_hit]', { entitySlug: slug, companyId: legacyCompany.id, userId })
+      return NextResponse.json({
+        briefReady: true,
+        entitySlug: legacyCompany.slug,
+        entityName:  legacyCompany.name,
+        cacheHit:    true,
+      })
+    }
+  }
+
   // ── Cache-first: check for a published, fresh Intelligence Brief ────────────
   const { data: entity } = await admin
     .from('entities')

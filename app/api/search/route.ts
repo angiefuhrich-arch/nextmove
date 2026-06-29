@@ -52,39 +52,22 @@ export async function GET(request: NextRequest) {
     { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
   )
 
-  // Check entities by slug or name
-  const { data: entities } = await supabase
-    .from('entities')
-    .select('id, slug, name, industry, country')
+  // Search companies by slug or name
+  const { data: companies } = await supabase
+    .from('companies')
+    .select('id, slug, name, industry, headquarters')
     .or(`slug.ilike.%${normalized}%,name.ilike.%${q}%`)
-    .limit(5)
-
-  // Check aliases
-  const { data: aliases } = await supabase
-    .from('entity_aliases')
-    .select('entity_id, alias, entities(id, slug, name, industry, country)')
-    .ilike('alias', `%${normalized}%`)
     .limit(5)
 
   const results: { id: string; slug: string; name: string; industry?: string; country?: string }[] = []
   const seen = new Set<string>()
 
-  for (const e of entities ?? []) {
-    if (!seen.has(e.id)) { seen.add(e.id); results.push(e) }
+  for (const c of companies ?? []) {
+    if (!seen.has(c.id)) {
+      seen.add(c.id)
+      results.push({ id: c.id, slug: c.slug, name: c.name, industry: c.industry ?? undefined, country: c.headquarters ?? undefined })
+    }
   }
-  for (const a of aliases ?? []) {
-    const e = ((a as unknown) as { entities: { id: string; slug: string; name: string; industry?: string; country?: string } | null }).entities
-    if (e && !seen.has(e.id)) { seen.add(e.id); results.push(e) }
-  }
-
-  // Log search (best-effort)
-  supabase.from('entity_search_logs').insert({
-    user_id:        userId,
-    raw_query:      q,
-    normalized,
-    matched_entity: results[0]?.id ?? null,
-    cache_hit:      results.length > 0,
-  }).then(() => {})
 
   if (results.length > 0) {
     return NextResponse.json({ hit: true, results })
